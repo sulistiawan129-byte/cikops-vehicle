@@ -23,7 +23,7 @@ body{background:#0A0E1A;font-family:'Inter',system-ui,sans-serif;color:#E2E8F0}
      CONFIG — Paste GAS Web App URL di bawah ini setelah deploy
      ═══════════════════════════════════════════════════════════ -->
 <script>
-  window.__GAS_URL__ ="https://script.google.com/macros/s/AKfycbzTcp29ocpf74WE-UBwvKbmMIpie2C0Dg_7Rxj7MpSYHnGU1yjjprE8F2eC3TTtRzgS/exec"; // ← PASTE URL GAS DI SINI
+  window.__GAS_URL__ ="https://script.google.com/macros/s/AKfycbxFOPCqinXxG495azQ9q_nLByQROMbVfzwYvb5gHZbe64tLjT7OtJTOrF4tKM2TazoN/exec"; // ← PASTE URL GAS DI SINI
 </script>
 
 <script>
@@ -55,12 +55,14 @@ var _React = React,
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 // Paste GAS Web App URL di index.html:  window.__GAS_URL__ = "https://..."
 var GAS_URL = typeof window !== "undefined" && window.__GAS_URL__ ? window.__GAS_URL__ : "";
-function gasGet(_x) {
-  return _gasGet.apply(this, arguments);
-}
-function _gasGet() {
-  _gasGet = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(action) {
-    var res, json, _t;
+
+// Semua request pakai GET — tidak ada CORS preflight, 100% works dari browser
+function gasCall(_x, _x2) {
+  return _gasCall.apply(this, arguments);
+} // Shorthand helpers
+function _gasCall() {
+  _gasCall = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(action, payload) {
+    var url, res, json, _t;
     return _regenerator().w(function (_context1) {
       while (1) switch (_context1.p = _context1.n) {
         case 0:
@@ -71,97 +73,61 @@ function _gasGet() {
           return _context1.a(2, null);
         case 1:
           _context1.p = 1;
+          // Encode payload as URL param — GET request tidak trigger CORS preflight
+          url = GAS_URL + "?action=" + encodeURIComponent(action) + (payload ? "&payload=" + encodeURIComponent(JSON.stringify(payload)) : "");
           _context1.n = 2;
-          return fetch("".concat(GAS_URL, "?action=").concat(action));
+          return fetch(url);
         case 2:
           res = _context1.v;
           _context1.n = 3;
           return res.json();
         case 3:
           json = _context1.v;
-          return _context1.a(2, json.ok ? json.data : null);
+          if (json.ok) {
+            _context1.n = 4;
+            break;
+          }
+          console.error("GAS error:", json.error);
+          return _context1.a(2, null);
         case 4:
-          _context1.p = 4;
+          return _context1.a(2, json.data);
+        case 5:
+          _context1.p = 5;
           _t = _context1.v;
-          console.error("GAS GET error:", _t);
+          console.error("GAS call error [" + action + "]:", _t);
           return _context1.a(2, null);
       }
-    }, _callee1, null, [[1, 4]]);
+    }, _callee1, null, [[1, 5]]);
   }));
-  return _gasGet.apply(this, arguments);
+  return _gasCall.apply(this, arguments);
 }
-function gasPost(_x2, _x3) {
-  return _gasPost.apply(this, arguments);
-} // Sync entire array to GAS (full replace approach — always consistent)
-function _gasPost() {
-  _gasPost = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(action, body) {
-    var res, json, _t2;
+var gasGet = function gasGet(action) {
+  return gasCall(action, null);
+};
+var gasPost = function gasPost(action, payload) {
+  return gasCall(action, payload);
+};
+function syncToGAS(_x3, _x4) {
+  return _syncToGAS.apply(this, arguments);
+}
+function _syncToGAS() {
+  _syncToGAS = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(action, payload) {
     return _regenerator().w(function (_context10) {
-      while (1) switch (_context10.p = _context10.n) {
+      while (1) switch (_context10.n) {
         case 0:
           if (GAS_URL) {
             _context10.n = 1;
             break;
           }
-          return _context10.a(2, null);
+          return _context10.a(2);
         case 1:
-          _context10.p = 1;
-          _context10.n = 2;
-          return fetch(GAS_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(_objectSpread({
-              action: action
-            }, body))
+          gasCall(action, payload).catch(function (e) {
+            return console.error("Sync bg error:", e);
           });
         case 2:
-          res = _context10.v;
-          _context10.n = 3;
-          return res.json();
-        case 3:
-          json = _context10.v;
-          return _context10.a(2, json.ok ? json.data : null);
-        case 4:
-          _context10.p = 4;
-          _t2 = _context10.v;
-          console.error("GAS POST error:", _t2);
-          return _context10.a(2, null);
+          return _context10.a(2);
       }
-    }, _callee10, null, [[1, 4]]);
-  }));
-  return _gasPost.apply(this, arguments);
-}
-function syncToGAS(_x4, _x5) {
-  return _syncToGAS.apply(this, arguments);
-}
-function _syncToGAS() {
-  _syncToGAS = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11(action, payload) {
-    var _t3;
-    return _regenerator().w(function (_context11) {
-      while (1) switch (_context11.p = _context11.n) {
-        case 0:
-          if (GAS_URL) {
-            _context11.n = 1;
-            break;
-          }
-          return _context11.a(2);
-        case 1:
-          _context11.p = 1;
-          _context11.n = 2;
-          return gasPost(action, payload);
-        case 2:
-          _context11.n = 4;
-          break;
-        case 3:
-          _context11.p = 3;
-          _t3 = _context11.v;
-          console.error("Sync error:", _t3);
-        case 4:
-          return _context11.a(2);
-      }
-    }, _callee11, null, [[1, 3]]);
+    }, _callee10);
   }));
   return _syncToGAS.apply(this, arguments);
 }
@@ -1591,7 +1557,7 @@ function Vehicles(_ref0) {
         }
       }, _callee2);
     }));
-    return function del(_x6) {
+    return function del(_x5) {
       return _ref10.apply(this, arguments);
     };
   }();
@@ -1635,7 +1601,7 @@ function Vehicles(_ref0) {
         }
       }, _callee3);
     }));
-    return function updStatus(_x7, _x8) {
+    return function updStatus(_x6, _x7) {
       return _ref11.apply(this, arguments);
     };
   }();
@@ -3988,7 +3954,7 @@ function DriverBudget(_ref26) {
         }
       }, _callee7);
     }));
-    return function delTier(_x9) {
+    return function delTier(_x8) {
       return _ref28.apply(this, arguments);
     };
   }();
