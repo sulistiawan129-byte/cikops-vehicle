@@ -1342,8 +1342,9 @@ function Dashboard(_ref3) {
       return setPage("claims");
     }
   }, "Lihat Semua")), recent.map(function (c) {
-    var v = INIT_VEHICLES.find(function (v) {
-      return v.id === c.vehicleId;
+    var cVehicleId = String(c.vehicleId || '').trim();
+    var v = vehicles.find(function (v) {
+      return String(v.id).trim() === cVehicleId;
     });
     return /*#__PURE__*/React.createElement("div", {
       key: c.id,
@@ -1922,18 +1923,27 @@ function Claims(_ref19) {
     showToast = _ref19.showToast,
     gasReady = _ref19.gasReady;
   var today = new Date().toISOString().slice(0, 10);
-  var blank = {
-    vehicleId: "",
-    driver: "",
-    date: today,
-    type: "Gasoline",
-    expr: ""
+  var blankItem = function blankItem() {
+    return {
+      id: Date.now() + Math.random(),
+      type: "Gasoline",
+      expr: ""
+    };
+  };
+  var blankForm = function blankForm() {
+    return {
+      vehicleId: "",
+      driver: "",
+      date: today,
+      items: [blankItem()],
+      note: ""
+    };
   };
   var _useState29 = useState(false),
     _useState30 = _slicedToArray(_useState29, 2),
     show = _useState30[0],
     setShow = _useState30[1];
-  var _useState31 = useState(blank),
+  var _useState31 = useState(blankForm),
     _useState32 = _slicedToArray(_useState31, 2),
     form = _useState32[0],
     setForm = _useState32[1];
@@ -1943,21 +1953,63 @@ function Claims(_ref19) {
     setFStat = _useState34[1];
   var _useState35 = useState("all"),
     _useState36 = _slicedToArray(_useState35, 2),
-    fType = _useState36[0],
-    setFType = _useState36[1];
+    fDriver = _useState36[0],
+    setFDriver = _useState36[1];
   var _useState37 = useState(false),
     _useState38 = _slicedToArray(_useState37, 2),
     submitting = _useState38[0],
     setSubmitting = _useState38[1];
-  var result = evalExpr(form.expr);
-  var exprOk = result !== null && result > 0;
-  var canSave = form.vehicleId && form.driver && form.date && exprOk;
+
+  // Items helpers
+  var addItem = function addItem() {
+    return setForm(function (p) {
+      return _objectSpread(_objectSpread({}, p), {}, {
+        items: [].concat(_toConsumableArray(p.items), [blankItem()])
+      });
+    });
+  };
+  var removeItem = function removeItem(id) {
+    return setForm(function (p) {
+      return _objectSpread(_objectSpread({}, p), {}, {
+        items: p.items.filter(function (x) {
+          return x.id !== id;
+        })
+      });
+    });
+  };
+  var updateItem = function updateItem(id, field, val) {
+    return setForm(function (p) {
+      return _objectSpread(_objectSpread({}, p), {}, {
+        items: p.items.map(function (x) {
+          return x.id === id ? _objectSpread(_objectSpread({}, x), {}, _defineProperty({}, field, val)) : x;
+        })
+      });
+    });
+  };
+
+  // Per-item computed totals
+  var itemTotal = function itemTotal(item) {
+    return evalExpr(item.expr) || 0;
+  };
+  var grandTotal = form.items.reduce(function (s, item) {
+    return s + itemTotal(item);
+  }, 0);
+  var allValid = form.items.every(function (item) {
+    return item.type && evalExpr(item.expr) > 0;
+  });
+  var canSave = form.vehicleId && form.driver && form.date && form.items.length > 0 && allValid;
+
+  // Filter
+  var allDrivers = _toConsumableArray(new Set(claims.map(function (c) {
+    return c.driver || c.driverName;
+  }).filter(Boolean)));
   var filtered = claims.filter(function (c) {
-    return (fStat === "all" || c.status === fStat) && (fType === "all" || c.type === fType);
+    var d = c.driver || c.driverName;
+    return (fStat === "all" || c.status === fStat) && (fDriver === "all" || d === fDriver);
   });
   var save = /*#__PURE__*/function () {
     var _ref20 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
-      var vehicle, driverEmail, newClaim, updated;
+      var vehicle, driverObj, driverEmail, submittedAt, groupId, newClaims, updated;
       return _regenerator().w(function (_context3) {
         while (1) switch (_context3.n) {
           case 0:
@@ -1969,37 +2021,61 @@ function Claims(_ref19) {
           case 1:
             setSubmitting(true);
             vehicle = vehicles.find(function (v) {
-              return v.id === parseInt(form.vehicleId);
+              return String(v.id) === String(form.vehicleId);
+            }); // Get real email from drivers list (from Sheets), fallback to empty
+            driverObj = (drivers || []).find(function (d) {
+              return (d.name || d) === form.driver;
             });
-            driverEmail = form.driver.toLowerCase().replace(/[\s]+/g, ".") + "@driver.fleet.id";
-            newClaim = {
-              id: "CLM-" + Date.now(),
-              vehicleId: parseInt(form.vehicleId),
-              driver: form.driver,
-              driverName: form.driver,
-              driverEmail: driverEmail,
-              date: form.date,
-              type: form.type,
-              expr: form.expr,
-              total: result,
-              status: "submitted",
-              note: "",
-              submittedAt: new Date().toISOString()
-            };
-            updated = [].concat(_toConsumableArray(claims), [newClaim]);
+            driverEmail = driverObj && _typeof(driverObj) === 'object' && driverObj.email ? driverObj.email.trim() : '';
+            submittedAt = new Date().toISOString(); // Each item becomes its own claim row (linked by groupId)
+            groupId = "GRP-" + Date.now();
+            newClaims = form.items.map(function (item, idx) {
+              return {
+                id: "CLM-" + Date.now() + "-" + idx,
+                groupId: groupId,
+                vehicleId: String(form.vehicleId),
+                driver: form.driver,
+                driverName: form.driver,
+                driverEmail: driverEmail,
+                date: form.date,
+                type: item.type,
+                expr: item.expr,
+                total: itemTotal(item),
+                status: "submitted",
+                note: form.note || "",
+                submittedAt: submittedAt
+              };
+            });
+            updated = [].concat(_toConsumableArray(claims), _toConsumableArray(newClaims));
             setClaims(updated);
             setShow(false);
-            setForm(blank);
-            showToast("Claim diajukan! Email dikirim ke driver ✉️");
+            setForm(blankForm());
+            showToast("".concat(newClaims.length, " claim diajukan! Email dikirim ke driver \u2709\uFE0F"));
             if (!gasReady) {
               _context3.n = 2;
               break;
             }
             _context3.n = 2;
-            return gasCall("addClaim", _objectSpread(_objectSpread({}, newClaim), {}, {
+            return gasCall("addClaim", {
+              groupId: groupId,
+              vehicleId: String(form.vehicleId),
+              driverName: form.driver,
+              driverEmail: driverEmail,
+              date: form.date,
+              note: form.note || "",
               vehiclePlate: (vehicle === null || vehicle === void 0 ? void 0 : vehicle.plate) || "",
-              vehicleType: (vehicle === null || vehicle === void 0 ? void 0 : vehicle.type) || ""
-            }));
+              vehicleType: (vehicle === null || vehicle === void 0 ? void 0 : vehicle.type) || "",
+              submittedAt: submittedAt,
+              items: form.items.map(function (item, idx) {
+                return {
+                  id: newClaims[idx].id,
+                  type: item.type,
+                  expr: item.expr,
+                  total: itemTotal(item)
+                };
+              }),
+              grandTotal: grandTotal
+            });
           case 2:
             setSubmitting(false);
           case 3:
@@ -2091,6 +2167,9 @@ function Claims(_ref19) {
       return _ref22.apply(this, arguments);
     };
   }();
+  var driverList = drivers && drivers.length > 0 ? drivers.map(function (d) {
+    return typeof d === "string" ? d : d.name;
+  }).filter(Boolean) : ["Budi Santoso", "Siti Rahayu", "Ahmad Fauzi", "Dewi Kusuma", "Reza Pratama", "Hendra Wijaya"];
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -2120,19 +2199,19 @@ function Claims(_ref19) {
     className: "inp",
     style: {
       width: "auto",
-      minWidth: 130
+      minWidth: 150
     },
-    value: fType,
+    value: fDriver,
     onChange: function onChange(e) {
-      return setFType(e.target.value);
+      return setFDriver(e.target.value);
     }
   }, /*#__PURE__*/React.createElement("option", {
     value: "all"
-  }, "Semua Tipe"), CLAIM_TYPES.map(function (t) {
+  }, "Semua Driver"), allDrivers.map(function (d) {
     return /*#__PURE__*/React.createElement("option", {
-      key: t,
-      value: t
-    }, t);
+      key: d,
+      value: d
+    }, d);
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1
@@ -2140,7 +2219,7 @@ function Claims(_ref19) {
   }), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-p",
     onClick: function onClick() {
-      setForm(blank);
+      setForm(blankForm());
       setShow(true);
     }
   }, /*#__PURE__*/React.createElement(Icon, {
@@ -2200,7 +2279,7 @@ function Claims(_ref19) {
       fontWeight: 700
     }
   }, "Rp ", fmt(filtered.reduce(function (s, c) {
-    return s + c.total;
+    return s + (c.total || 0);
   }, 0))))), /*#__PURE__*/React.createElement("div", {
     className: "glass",
     style: {
@@ -2219,11 +2298,11 @@ function Claims(_ref19) {
     style: {
       borderBottom: "1px solid rgba(255,255,255,0.07)"
     }
-  }, ["Tanggal", "Driver", "Kendaraan", "Tipe", "Nominal", "Status", "Aksi"].map(function (h) {
+  }, ["Tanggal", "Driver", "Kendaraan", "Jenis Claim", "Nominal", "Status", "Aksi"].map(function (h) {
     return /*#__PURE__*/React.createElement("th", {
       key: h,
       style: {
-        padding: "13px 15px",
+        padding: "12px 14px",
         textAlign: "left",
         fontSize: 11,
         fontWeight: 600,
@@ -2232,8 +2311,9 @@ function Claims(_ref19) {
       }
     }, h);
   }))), /*#__PURE__*/React.createElement("tbody", null, filtered.map(function (c) {
+    var cVid = String(c.vehicleId || '').trim();
     var v = vehicles.find(function (v) {
-      return v.id === c.vehicleId || v.id === String(c.vehicleId) || String(v.id) === String(c.vehicleId);
+      return String(v.id).trim() === cVid || v.plate === cVid;
     });
     var nxt = NEXT[c.status] || [];
     return /*#__PURE__*/React.createElement("tr", {
@@ -2241,26 +2321,25 @@ function Claims(_ref19) {
       className: "trow"
     }, /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "13px 15px",
+        padding: "12px 14px",
         fontSize: 12,
         color: "#9CA3AF",
         whiteSpace: "nowrap"
       }
     }, fmtDate(c.date)), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "13px 15px",
+        padding: "12px 14px",
         fontSize: 13,
         fontWeight: 600,
         color: "#E2E8F0"
       }
     }, c.driver || c.driverName), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "13px 15px"
+        padding: "12px 14px"
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 12,
-        fontWeight: 500,
         color: "#CBD5E1"
       }
     }, (v === null || v === void 0 ? void 0 : v.plate) || "-"), /*#__PURE__*/React.createElement("div", {
@@ -2270,7 +2349,7 @@ function Claims(_ref19) {
       }
     }, v === null || v === void 0 ? void 0 : v.type)), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "13px 15px"
+        padding: "12px 14px"
       }
     }, /*#__PURE__*/React.createElement("span", {
       className: "tag",
@@ -2280,7 +2359,7 @@ function Claims(_ref19) {
       }
     }, c.type)), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "13px 15px"
+        padding: "12px 14px"
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -2289,16 +2368,9 @@ function Claims(_ref19) {
         color: "#F1F5F9",
         whiteSpace: "nowrap"
       }
-    }, "Rp ", fmt(c.total)), c.expr && c.expr !== String(c.total) && /*#__PURE__*/React.createElement("div", {
+    }, "Rp ", fmt(c.total))), /*#__PURE__*/React.createElement("td", {
       style: {
-        fontSize: 10,
-        color: "#374151",
-        fontFamily: "monospace",
-        marginTop: 2
-      }
-    }, c.expr)), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "13px 15px"
+        padding: "12px 14px"
       }
     }, /*#__PURE__*/React.createElement("span", {
       className: "badge",
@@ -2308,7 +2380,7 @@ function Claims(_ref19) {
       }
     }, SL[c.status])), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "13px 15px"
+        padding: "12px 14px"
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -2357,14 +2429,14 @@ function Claims(_ref19) {
   }, /*#__PURE__*/React.createElement("div", {
     className: "modal",
     style: {
-      maxWidth: 440
+      maxWidth: 540
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 22
+      marginBottom: 20
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
     style: {
@@ -2378,7 +2450,7 @@ function Claims(_ref19) {
       color: "#4B5563",
       marginTop: 2
     }
-  }, "Isi form lalu submit")), /*#__PURE__*/React.createElement("button", {
+  }, "1 pengajuan bisa multiple jenis claim")), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-s btn-sm",
     style: {
       padding: "6px 9px"
@@ -2391,11 +2463,16 @@ function Claims(_ref19) {
     size: 15
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 15
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12,
+      marginBottom: 18
     }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      gridColumn: "1/-1"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
     style: {
       fontSize: 11,
       color: "#6B7280",
@@ -2434,13 +2511,11 @@ function Claims(_ref19) {
     }
   }, /*#__PURE__*/React.createElement("option", {
     value: ""
-  }, "Pilih Driver"), (drivers && drivers.length > 0 ? drivers.map(function (d) {
-    return d.name || d;
-  }) : DRIVERS).map(function (d) {
+  }, "Pilih Driver"), driverList.map(function (d) {
     return /*#__PURE__*/React.createElement("option", {
-      key: typeof d === "string" ? d : d.id,
-      value: typeof d === "string" ? d : d.name
-    }, typeof d === "string" ? d : d.name);
+      key: d,
+      value: d
+    }, d);
   }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: {
       fontSize: 11,
@@ -2461,47 +2536,137 @@ function Claims(_ref19) {
     }
   }, /*#__PURE__*/React.createElement("option", {
     value: ""
-  }, "Pilih Kendaraan"), vehicles.map(function (v) {
+  }, "Pilih Kendaraan"), (vehicles || []).map(function (v) {
     return /*#__PURE__*/React.createElement("option", {
       key: v.id,
       value: v.id
-    }, v.plate, " - ", v.type);
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    }, v.plate, " \u2014 ", v.type);
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("label", {
     style: {
       fontSize: 11,
       color: "#6B7280",
-      fontWeight: 600,
-      display: "block",
-      marginBottom: 6
+      fontWeight: 600
     }
-  }, "JENIS CLAIM"), /*#__PURE__*/React.createElement("div", {
+  }, "RINCIAN CLAIM"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-s btn-sm",
+    style: {
+      fontSize: 12
+    },
+    onClick: addItem
+  }, /*#__PURE__*/React.createElement(Icon, {
+    d: IC.plus,
+    size: 13
+  }), "Tambah Jenis")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "repeat(3,1fr)",
-      gap: 7
+      gridTemplateColumns: "140px 1fr 32px",
+      gap: 8,
+      marginBottom: 6,
+      padding: "0 4px"
     }
-  }, CLAIM_TYPES.map(function (t) {
-    return /*#__PURE__*/React.createElement("button", {
-      key: t,
-      className: "btn",
-      onClick: function onClick() {
-        return setForm(function (p) {
-          return _objectSpread(_objectSpread({}, p), {}, {
-            type: t
-          });
-        });
-      },
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#4B5563",
+      fontWeight: 600
+    }
+  }, "Jenis Claim"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#4B5563",
+      fontWeight: 600
+    }
+  }, "Nominal (bisa rumus: 50000+30000)"), /*#__PURE__*/React.createElement("div", null)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, form.items.map(function (item, idx) {
+    var res = evalExpr(item.expr);
+    var ok = res !== null && res > 0;
+    var err = item.expr.trim() && !ok;
+    return /*#__PURE__*/React.createElement("div", {
+      key: item.id,
       style: {
-        padding: "9px 6px",
-        fontSize: 12,
-        justifyContent: "center",
-        background: form.type === t ? "rgba(0,212,255,0.15)" : "rgba(255,255,255,0.04)",
-        border: "1px solid ".concat(form.type === t ? "rgba(0,212,255,0.5)" : "rgba(255,255,255,0.08)"),
-        color: form.type === t ? "#00D4FF" : "#9CA3AF",
-        borderRadius: 9
+        display: "grid",
+        gridTemplateColumns: "140px 1fr 32px",
+        gap: 8,
+        alignItems: "center"
       }
-    }, t);
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    }, /*#__PURE__*/React.createElement("select", {
+      className: "inp",
+      style: {
+        fontSize: 13,
+        padding: "9px 10px"
+      },
+      value: item.type,
+      onChange: function onChange(e) {
+        return updateItem(item.id, "type", e.target.value);
+      }
+    }, CLAIM_TYPES.map(function (t) {
+      return /*#__PURE__*/React.createElement("option", {
+        key: t,
+        value: t
+      }, t);
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "relative"
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      className: "inp",
+      style: {
+        paddingRight: item.expr.trim() ? 120 : 14,
+        fontFamily: "monospace",
+        fontSize: 13
+      },
+      placeholder: "0 atau 50000+30000",
+      value: item.expr,
+      onChange: function onChange(e) {
+        return updateItem(item.id, "expr", e.target.value);
+      }
+    }), item.expr.trim() && /*#__PURE__*/React.createElement("span", {
+      style: {
+        position: "absolute",
+        right: 10,
+        top: "50%",
+        transform: "translateY(-50%)",
+        fontSize: 12,
+        fontWeight: 700,
+        color: err ? "#EF4444" : "#00D4FF",
+        whiteSpace: "nowrap",
+        pointerEvents: "none"
+      }
+    }, err ? "invalid" : "= Rp ".concat(fmt(res)))), /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-d",
+      style: {
+        padding: "8px",
+        justifyContent: "center",
+        opacity: form.items.length === 1 ? 0.3 : 1
+      },
+      onClick: function onClick() {
+        return form.items.length > 1 && removeItem(item.id);
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      d: IC.x,
+      size: 13
+    })));
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("label", {
     style: {
       fontSize: 11,
       color: "#6B7280",
@@ -2509,50 +2674,87 @@ function Claims(_ref19) {
       display: "block",
       marginBottom: 6
     }
-  }, "NOMINAL"), /*#__PURE__*/React.createElement(ExprInput, {
-    value: form.expr,
-    onChange: function onChange(v) {
+  }, "CATATAN (opsional)"), /*#__PURE__*/React.createElement("input", {
+    className: "inp",
+    placeholder: "Perjalanan dinas, keterangan lain...",
+    value: form.note,
+    onChange: function onChange(e) {
       return setForm(function (p) {
         return _objectSpread(_objectSpread({}, p), {}, {
-          expr: v
+          note: e.target.value
         });
       });
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 11,
-      color: "#374151",
-      marginTop: 5
-    }
-  }, "Ketik rumus: ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#4B5563",
-      fontFamily: "monospace"
-    }
-  }, "50000+30000")))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      margin: "18px 0",
-      padding: "14px 18px",
       background: "rgba(0,212,255,0.06)",
       border: "1px solid rgba(0,212,255,0.2)",
       borderRadius: 12,
+      padding: "14px 18px",
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "center"
+      alignItems: "center",
+      marginBottom: 8
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 13,
       color: "#6B7280"
     }
-  }, "Total Claim"), /*#__PURE__*/React.createElement("span", {
+  }, "Rincian"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "#6B7280"
+    }
+  }, "Nominal")), form.items.map(function (item) {
+    var res = evalExpr(item.expr);
+    return res > 0 ? /*#__PURE__*/React.createElement("div", {
+      key: item.id,
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13,
+        color: "#CBD5E1"
+      }
+    }, item.type), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13,
+        color: "#E2E8F0",
+        fontFamily: "monospace"
+      }
+    }, "Rp ", fmt(res))) : null;
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: "1px solid rgba(0,212,255,0.2)",
+      marginTop: 10,
+      paddingTop: 10,
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      fontWeight: 700,
+      color: "#CBD5E1"
+    }
+  }, "TOTAL"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontFamily: "'Space Grotesk',sans-serif",
       fontWeight: 800,
       fontSize: 22,
-      color: exprOk ? "#00D4FF" : "#374151"
+      color: grandTotal > 0 ? "#00D4FF" : "#374151"
     }
-  }, exprOk ? "Rp ".concat(fmt(result)) : "—")), gasReady && /*#__PURE__*/React.createElement("div", {
+  }, grandTotal > 0 ? "Rp ".concat(fmt(grandTotal)) : "—"))), gasReady && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12,
       color: "#10B981",
@@ -2649,7 +2851,7 @@ function FuelCtrl(_ref23) {
   });
   var byVehicle = vehicles.map(function (v) {
     var total = gasClaims.filter(function (c) {
-      return c.vehicleId === v.id;
+      return String(c.vehicleId) === String(v.id);
     }).reduce(function (s, c) {
       return s + c.total;
     }, 0);
@@ -3615,7 +3817,7 @@ function Reports(_ref27) {
     return new Date(b.date) - new Date(a.date);
   }).map(function (c) {
     var v = vehicles.find(function (v) {
-      return v.id === c.vehicleId;
+      return String(v.id) === String(c.vehicleId || '');
     });
     return /*#__PURE__*/React.createElement("tr", {
       key: c.id,
