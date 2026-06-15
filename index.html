@@ -23,7 +23,7 @@ body{background:#0A0E1A;font-family:'Inter',system-ui,sans-serif;color:#E2E8F0}
      CONFIG — Paste GAS Web App URL di bawah ini setelah deploy
      ═══════════════════════════════════════════════════════════ -->
 <script>
-  window.__GAS_URL__ ="https://script.google.com/macros/s/AKfycbxFOPCqinXxG495azQ9q_nLByQROMbVfzwYvb5gHZbe64tLjT7OtJTOrF4tKM2TazoN/exec"; // ← PASTE URL GAS DI SINI
+  window.__GAS_URL__ = "https://script.google.com/macros/s/AKfycbxFOPCqinXxG495azQ9q_nLByQROMbVfzwYvb5gHZbe64tLjT7OtJTOrF4tKM2TazoN/exec"; // ← PASTE URL GAS DI SINI
 </script>
 
 <script>
@@ -185,6 +185,16 @@ var IC = {
   refresh: ["M23 4v6h-6", "M1 20v-6h6", "M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"]
 };
 var DRIVERS = ["Budi Santoso", "Siti Rahayu", "Ahmad Fauzi", "Dewi Kusuma", "Reza Pratama", "Hendra Wijaya"];
+var INIT_DRIVERS = DRIVERS.map(function (name, i) {
+  return {
+    id: i + 1,
+    name: name,
+    email: "",
+    tier: "",
+    phone: "",
+    status: "active"
+  };
+});
 var CLAIM_TYPES = ["Gasoline", "Toll", "Parking", "Service", "Maintenance", "Other"];
 var KIR_DOCS = ["Buku KIR lama", "STNK asli", "KTP pengemudi", "Formulir permohonan KIR", "Bukti bayar retribusi"];
 var SVC_DOCS = ["Buku servis", "Riwayat perawatan sebelumnya", "Data odometer terkini", "Garansi spare part lama"];
@@ -612,26 +622,30 @@ function App() {
     _useState10 = _slicedToArray(_useState1, 2),
     tiers = _useState10[0],
     setTiers = _useState10[1];
-  var _useState11 = useState(INIT_KANTONG),
+  var _useState11 = useState([]),
     _useState12 = _slicedToArray(_useState11, 2),
-    kantong = _useState12[0],
-    setKantong = _useState12[1];
-  var _useState13 = useState(null),
+    drivers = _useState12[0],
+    setDrivers = _useState12[1];
+  var _useState13 = useState(INIT_KANTONG),
     _useState14 = _slicedToArray(_useState13, 2),
-    toast = _useState14[0],
-    setToast = _useState14[1];
-  var _useState15 = useState(false),
+    kantong = _useState14[0],
+    setKantong = _useState14[1];
+  var _useState15 = useState(null),
     _useState16 = _slicedToArray(_useState15, 2),
-    loading = _useState16[0],
-    setLoading = _useState16[1];
+    toast = _useState16[0],
+    setToast = _useState16[1];
   var _useState17 = useState(false),
     _useState18 = _slicedToArray(_useState17, 2),
-    gasReady = _useState18[0],
-    setGasReady = _useState18[1];
+    loading = _useState18[0],
+    setLoading = _useState18[1];
   var _useState19 = useState(false),
     _useState20 = _slicedToArray(_useState19, 2),
-    gasError = _useState20[0],
-    setGasError = _useState20[1];
+    gasReady = _useState20[0],
+    setGasReady = _useState20[1];
+  var _useState21 = useState(false),
+    _useState22 = _slicedToArray(_useState21, 2),
+    gasError = _useState22[0],
+    setGasError = _useState22[1];
 
   // ── Load ALL data from GAS (or demo data if no GAS URL) ──
   useEffect(function () {
@@ -639,6 +653,7 @@ function App() {
       // No GAS → use demo data
       setVehicles(INIT_VEHICLES);
       setClaims(INIT_CLAIMS);
+      setDrivers(INIT_DRIVERS);
       setBbm(INIT_BBM);
       setTiers(INIT_TIERS);
       setKantong(INIT_KANTONG);
@@ -667,6 +682,8 @@ function App() {
           vehicleId: Number(c.vehicleId) || c.vehicleId
         });
       }));
+      // Drivers
+      if ((data.drivers || []).length > 0) setDrivers(data.drivers);
       // BBM
       if (data.bbm && Object.keys(data.bbm).length > 0) setBbm(data.bbm);else setBbm(INIT_BBM);
       // Tiers
@@ -1026,6 +1043,7 @@ function App() {
     claims: claims || [],
     setClaims: setClaims,
     vehicles: vehicles || [],
+    drivers: drivers || [],
     showToast: showToast,
     gasReady: gasReady
   }), page === "fuel" && /*#__PURE__*/React.createElement(FuelCtrl, {
@@ -1480,18 +1498,18 @@ function Vehicles(_ref0) {
     stnk: "",
     status: "active"
   };
-  var _useState21 = useState(false),
-    _useState22 = _slicedToArray(_useState21, 2),
-    show = _useState22[0],
-    setShow = _useState22[1];
-  var _useState23 = useState(null),
+  var _useState23 = useState(false),
     _useState24 = _slicedToArray(_useState23, 2),
-    edit = _useState24[0],
-    setEdit = _useState24[1];
-  var _useState25 = useState(blank),
+    show = _useState24[0],
+    setShow = _useState24[1];
+  var _useState25 = useState(null),
     _useState26 = _slicedToArray(_useState25, 2),
-    form = _useState26[0],
-    setForm = _useState26[1];
+    edit = _useState26[0],
+    setEdit = _useState26[1];
+  var _useState27 = useState(blank),
+    _useState28 = _slicedToArray(_useState27, 2),
+    form = _useState28[0],
+    setForm = _useState28[1];
   var open = function open(v) {
     setForm(v ? _objectSpread(_objectSpread({}, v), {}, {
       year: String(v.year),
@@ -1900,6 +1918,7 @@ function Claims(_ref19) {
   var claims = _ref19.claims,
     setClaims = _ref19.setClaims,
     vehicles = _ref19.vehicles,
+    drivers = _ref19.drivers,
     showToast = _ref19.showToast,
     gasReady = _ref19.gasReady;
   var today = new Date().toISOString().slice(0, 10);
@@ -1910,26 +1929,26 @@ function Claims(_ref19) {
     type: "Gasoline",
     expr: ""
   };
-  var _useState27 = useState(false),
-    _useState28 = _slicedToArray(_useState27, 2),
-    show = _useState28[0],
-    setShow = _useState28[1];
-  var _useState29 = useState(blank),
+  var _useState29 = useState(false),
     _useState30 = _slicedToArray(_useState29, 2),
-    form = _useState30[0],
-    setForm = _useState30[1];
-  var _useState31 = useState("all"),
+    show = _useState30[0],
+    setShow = _useState30[1];
+  var _useState31 = useState(blank),
     _useState32 = _slicedToArray(_useState31, 2),
-    fStat = _useState32[0],
-    setFStat = _useState32[1];
+    form = _useState32[0],
+    setForm = _useState32[1];
   var _useState33 = useState("all"),
     _useState34 = _slicedToArray(_useState33, 2),
-    fType = _useState34[0],
-    setFType = _useState34[1];
-  var _useState35 = useState(false),
+    fStat = _useState34[0],
+    setFStat = _useState34[1];
+  var _useState35 = useState("all"),
     _useState36 = _slicedToArray(_useState35, 2),
-    submitting = _useState36[0],
-    setSubmitting = _useState36[1];
+    fType = _useState36[0],
+    setFType = _useState36[1];
+  var _useState37 = useState(false),
+    _useState38 = _slicedToArray(_useState37, 2),
+    submitting = _useState38[0],
+    setSubmitting = _useState38[1];
   var result = evalExpr(form.expr);
   var exprOk = result !== null && result > 0;
   var canSave = form.vehicleId && form.driver && form.date && exprOk;
@@ -2415,11 +2434,13 @@ function Claims(_ref19) {
     }
   }, /*#__PURE__*/React.createElement("option", {
     value: ""
-  }, "Pilih Driver"), DRIVERS.map(function (d) {
+  }, "Pilih Driver"), (drivers && drivers.length > 0 ? drivers.map(function (d) {
+    return d.name || d;
+  }) : DRIVERS).map(function (d) {
     return /*#__PURE__*/React.createElement("option", {
-      key: d,
-      value: d
-    }, d);
+      key: typeof d === "string" ? d : d.id,
+      value: typeof d === "string" ? d : d.name
+    }, typeof d === "string" ? d : d.name);
   }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: {
       fontSize: 11,
@@ -2593,22 +2614,22 @@ function FuelCtrl(_ref23) {
     claims = _ref23.claims,
     vehicles = _ref23.vehicles,
     showToast = _ref23.showToast;
-  var _useState37 = useState(false),
-    _useState38 = _slicedToArray(_useState37, 2),
-    showAdd = _useState38[0],
-    setShowAdd = _useState38[1];
-  var _useState39 = useState("Pertalite"),
+  var _useState39 = useState(false),
     _useState40 = _slicedToArray(_useState39, 2),
-    selFuel = _useState40[0],
-    setSelFuel = _useState40[1];
-  var _useState41 = useState(""),
+    showAdd = _useState40[0],
+    setShowAdd = _useState40[1];
+  var _useState41 = useState("Pertalite"),
     _useState42 = _slicedToArray(_useState41, 2),
-    newPrice = _useState42[0],
-    setNewPrice = _useState42[1];
-  var _useState43 = useState(new Date().toISOString().slice(0, 10)),
+    selFuel = _useState42[0],
+    setSelFuel = _useState42[1];
+  var _useState43 = useState(""),
     _useState44 = _slicedToArray(_useState43, 2),
-    newDate = _useState44[0],
-    setNewDate = _useState44[1];
+    newPrice = _useState44[0],
+    setNewPrice = _useState44[1];
+  var _useState45 = useState(new Date().toISOString().slice(0, 10)),
+    _useState46 = _slicedToArray(_useState45, 2),
+    newDate = _useState46[0],
+    setNewDate = _useState46[1];
   var fuelTypes = Object.keys(bbm || {});
   var curPrice = function curPrice(name) {
     var _bbm$name;
@@ -3187,18 +3208,18 @@ function FuelCtrl(_ref23) {
 function Reports(_ref27) {
   var claims = _ref27.claims,
     vehicles = _ref27.vehicles;
-  var _useState45 = useState("monthly"),
-    _useState46 = _slicedToArray(_useState45, 2),
-    period = _useState46[0],
-    setPeriod = _useState46[1];
-  var _useState47 = useState("2025-04-01"),
+  var _useState47 = useState("monthly"),
     _useState48 = _slicedToArray(_useState47, 2),
-    startDate = _useState48[0],
-    setStartDate = _useState48[1];
-  var _useState49 = useState("2025-06-30"),
+    period = _useState48[0],
+    setPeriod = _useState48[1];
+  var _useState49 = useState("2025-04-01"),
     _useState50 = _slicedToArray(_useState49, 2),
-    endDate = _useState50[0],
-    setEndDate = _useState50[1];
+    startDate = _useState50[0],
+    setStartDate = _useState50[1];
+  var _useState51 = useState("2025-06-30"),
+    _useState52 = _slicedToArray(_useState51, 2),
+    endDate = _useState52[0],
+    setEndDate = _useState52[1];
   var filtered = claims.filter(function (c) {
     var d = new Date(c.date);
     if (period === "weekly") {
@@ -3655,26 +3676,26 @@ function Documents(_ref30) {
   var vehicles = _ref30.vehicles,
     setVehicles = _ref30.setVehicles,
     showToast = _ref30.showToast;
-  var _useState51 = useState(false),
-    _useState52 = _slicedToArray(_useState51, 2),
-    show = _useState52[0],
-    setShow = _useState52[1];
-  var _useState53 = useState(null),
+  var _useState53 = useState(false),
     _useState54 = _slicedToArray(_useState53, 2),
-    editV = _useState54[0],
-    setEditV = _useState54[1];
-  var _useState55 = useState({
+    show = _useState54[0],
+    setShow = _useState54[1];
+  var _useState55 = useState(null),
+    _useState56 = _slicedToArray(_useState55, 2),
+    editV = _useState56[0],
+    setEditV = _useState56[1];
+  var _useState57 = useState({
       kir: "",
       service: "",
       stnk: ""
     }),
-    _useState56 = _slicedToArray(_useState55, 2),
-    form = _useState56[0],
-    setForm = _useState56[1];
-  var _useState57 = useState({}),
     _useState58 = _slicedToArray(_useState57, 2),
-    expanded = _useState58[0],
-    setExpanded = _useState58[1];
+    form = _useState58[0],
+    setForm = _useState58[1];
+  var _useState59 = useState({}),
+    _useState60 = _slicedToArray(_useState59, 2),
+    expanded = _useState60[0],
+    setExpanded = _useState60[1];
   var CAT_COL = {
     KIR: "#7B2FBE",
     Service: "#F59E0B",
@@ -4314,27 +4335,27 @@ function DriverBudget(_ref37) {
   var tiers = _ref37.tiers,
     setTiers = _ref37.setTiers,
     showToast = _ref37.showToast;
-  var _useState59 = useState(10),
-    _useState60 = _slicedToArray(_useState59, 2),
-    simPct = _useState60[0],
-    setSimPct = _useState60[1];
-  var _useState61 = useState(false),
+  var _useState61 = useState(10),
     _useState62 = _slicedToArray(_useState61, 2),
-    showAdd = _useState62[0],
-    setShowAdd = _useState62[1];
-  var _useState63 = useState(null),
+    simPct = _useState62[0],
+    setSimPct = _useState62[1];
+  var _useState63 = useState(false),
     _useState64 = _slicedToArray(_useState63, 2),
-    editTier = _useState64[0],
-    setEditTier = _useState64[1];
-  var _useState65 = useState({
+    showAdd = _useState64[0],
+    setShowAdd = _useState64[1];
+  var _useState65 = useState(null),
+    _useState66 = _slicedToArray(_useState65, 2),
+    editTier = _useState66[0],
+    setEditTier = _useState66[1];
+  var _useState67 = useState({
       name: "",
       color: "#00D4FF",
       amount: "",
       count: "1"
     }),
-    _useState66 = _slicedToArray(_useState65, 2),
-    form = _useState66[0],
-    setForm = _useState66[1];
+    _useState68 = _slicedToArray(_useState67, 2),
+    form = _useState68[0],
+    setForm = _useState68[1];
   var PALETTE = ["#00D4FF", "#7B2FBE", "#10B981", "#F59E0B", "#EF4444", "#EC4899", "#8B5CF6", "#3B82F6"];
   var totalNow = tiers.reduce(function (s, t) {
     return s + t.amount * t.count;
@@ -5109,54 +5130,54 @@ function OpFund(_ref40) {
   var kantong = _ref40.kantong,
     setKantong = _ref40.setKantong,
     showToast = _ref40.showToast;
-  var _useState67 = useState(false),
-    _useState68 = _slicedToArray(_useState67, 2),
-    showTrx = _useState68[0],
-    setShowTrx = _useState68[1];
   var _useState69 = useState(false),
     _useState70 = _slicedToArray(_useState69, 2),
-    showEdit = _useState70[0],
-    setShowEdit = _useState70[1];
+    showTrx = _useState70[0],
+    setShowTrx = _useState70[1];
   var _useState71 = useState(false),
     _useState72 = _slicedToArray(_useState71, 2),
-    showReset = _useState72[0],
-    setShowReset = _useState72[1];
+    showEdit = _useState72[0],
+    setShowEdit = _useState72[1];
   var _useState73 = useState(false),
     _useState74 = _slicedToArray(_useState73, 2),
-    showTf = _useState74[0],
-    setShowTf = _useState74[1];
-  var _useState75 = useState(null),
+    showReset = _useState74[0],
+    setShowReset = _useState74[1];
+  var _useState75 = useState(false),
     _useState76 = _slicedToArray(_useState75, 2),
-    selK = _useState76[0],
-    setSelK = _useState76[1];
-  var _useState77 = useState({
+    showTf = _useState76[0],
+    setShowTf = _useState76[1];
+  var _useState77 = useState(null),
+    _useState78 = _slicedToArray(_useState77, 2),
+    selK = _useState78[0],
+    setSelK = _useState78[1];
+  var _useState79 = useState({
       desc: "",
       amount: "",
       type: "out"
     }),
-    _useState78 = _slicedToArray(_useState77, 2),
-    trxForm = _useState78[0],
-    setTrxForm = _useState78[1];
-  var _useState79 = useState(String((kantong === null || kantong === void 0 ? void 0 : kantong.totalBudget) || 48000000)),
     _useState80 = _slicedToArray(_useState79, 2),
-    editBudget = _useState80[0],
-    setEditBudget = _useState80[1];
-  var _useState81 = useState(((kantong === null || kantong === void 0 ? void 0 : kantong.kantong) || []).map(function (k) {
+    trxForm = _useState80[0],
+    setTrxForm = _useState80[1];
+  var _useState81 = useState(String((kantong === null || kantong === void 0 ? void 0 : kantong.totalBudget) || 48000000)),
+    _useState82 = _slicedToArray(_useState81, 2),
+    editBudget = _useState82[0],
+    setEditBudget = _useState82[1];
+  var _useState83 = useState(((kantong === null || kantong === void 0 ? void 0 : kantong.kantong) || []).map(function (k) {
       return _objectSpread(_objectSpread({}, k), {}, {
         allocStr: String(k.alloc || 0)
       });
     })),
-    _useState82 = _slicedToArray(_useState81, 2),
-    editK = _useState82[0],
-    setEditK = _useState82[1];
-  var _useState83 = useState({
+    _useState84 = _slicedToArray(_useState83, 2),
+    editK = _useState84[0],
+    setEditK = _useState84[1];
+  var _useState85 = useState({
       from: "",
       to: "",
       amount: ""
     }),
-    _useState84 = _slicedToArray(_useState83, 2),
-    tfForm = _useState84[0],
-    setTfForm = _useState84[1];
+    _useState86 = _slicedToArray(_useState85, 2),
+    tfForm = _useState86[0],
+    setTfForm = _useState86[1];
   var totalAlloc = ((kantong === null || kantong === void 0 ? void 0 : kantong.kantong) || []).reduce(function (s, k) {
     return s + (k.alloc || 0);
   }, 0);
