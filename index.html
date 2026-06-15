@@ -1917,784 +1917,499 @@ function Vehicles(_ref0) {
 }
 
 // ── CLAIMS ────────────────────────────────────────────────────────────────────
-function Claims(_ref19) {
-  var claims = _ref19.claims,
-    setClaims = _ref19.setClaims,
-    vehicles = _ref19.vehicles,
-    drivers = _ref19.drivers,
-    showToast = _ref19.showToast,
-    gasReady = _ref19.gasReady;
-  var today = new Date().toISOString().slice(0, 10);
-  var blankItem = function blankItem() {
-    return {
-      id: Date.now() + Math.random(),
-      type: "Gasoline",
-      expr: ""
-    };
-  };
-  var blankForm = function blankForm() {
-    return {
-      driver: "",
-      date: today,
-      items: [blankItem()],
-      note: ""
-    };
-  };
-  var _useState29 = useState(false),
-    _useState30 = _slicedToArray(_useState29, 2),
-    show = _useState30[0],
-    setShow = _useState30[1];
-  var _useState31 = useState(blankForm),
-    _useState32 = _slicedToArray(_useState31, 2),
-    form = _useState32[0],
-    setForm = _useState32[1];
-  var _useState33 = useState("all"),
-    _useState34 = _slicedToArray(_useState33, 2),
-    fStat = _useState34[0],
-    setFStat = _useState34[1];
-  var _useState35 = useState("all"),
-    _useState36 = _slicedToArray(_useState35, 2),
-    fDriver = _useState36[0],
-    setFDriver = _useState36[1];
-  var _useState37 = useState(false),
-    _useState38 = _slicedToArray(_useState37, 2),
-    submitting = _useState38[0],
-    setSubmitting = _useState38[1];
+// ══════════════════════════════════════════════════════════════
+//  FLEETOS — CLAIMS COMPONENT (PATCH)
+//  Ganti seluruh function Claims(...) { ... } di index.html
+//  dengan kode di bawah ini.
+//
+//  PERUBAHAN:
+//  - Tabel menampilkan rincian items (bukan hanya total)
+//  - Setiap claim punya expand/collapse untuk lihat detail
+//  - Badge per jenis claim ditampilkan
+//  - Submit tetap 1 claim ID untuk semua rincian
+// ══════════════════════════════════════════════════════════════
 
-  // Items helpers
-  var addItem = function addItem() {
-    return setForm(function (p) {
-      return _objectSpread(_objectSpread({}, p), {}, {
-        items: [].concat(_toConsumableArray(p.items), [blankItem()])
-      });
-    });
-  };
-  var removeItem = function removeItem(id) {
-    return setForm(function (p) {
-      return _objectSpread(_objectSpread({}, p), {}, {
-        items: p.items.filter(function (x) {
-          return x.id !== id;
-        })
-      });
-    });
-  };
-  var updateItem = function updateItem(id, field, val) {
-    return setForm(function (p) {
-      return _objectSpread(_objectSpread({}, p), {}, {
-        items: p.items.map(function (x) {
-          return x.id === id ? _objectSpread(_objectSpread({}, x), {}, _defineProperty({}, field, val)) : x;
-        })
-      });
-    });
-  };
-  var itemTotal = function itemTotal(item) {
-    return evalExpr(item.expr) || 0;
-  };
-  var grandTotal = form.items.reduce(function (s, item) {
-    return s + itemTotal(item);
-  }, 0);
-  var allValid = form.items.length > 0 && form.items.every(function (item) {
-    return item.type && itemTotal(item) > 0;
-  });
-  var canSave = form.driver && form.date && allValid;
+function Claims({ claims, setClaims, vehicles, drivers, showToast, gasReady }) {
+  const today = new Date().toISOString().slice(0, 10);
 
-  // Status — simplified: submitted → processed only
-  var SC2 = {
-    submitted: "#3B82F6",
-    processed: "#10B981",
-    draft: "#6B7280"
-  };
-  var SL2 = {
-    submitted: "Submitted",
-    processed: "Processed",
-    draft: "Draft"
-  };
-  // All new claims are submitted — no manual processing needed
+  const blankItem = () => ({ id: Date.now() + Math.random(), type: "Gasoline", expr: "" });
+  const blankForm = () => ({ driver: "", date: today, items: [blankItem()], note: "" });
 
-  var allDrivers = _toConsumableArray(new Set(claims.map(function (c) {
-    return c.driver || c.driverName;
-  }).filter(Boolean)));
-  var filtered = claims.filter(function (c) {
-    var d = c.driver || c.driverName;
+  const [show, setShow]           = React.useState(false);
+  const [form, setForm]           = React.useState(blankForm);
+  const [fStat, setFStat]         = React.useState("all");
+  const [fDriver, setFDriver]     = React.useState("all");
+  const [submitting, setSubmitting] = React.useState(false);
+  const [expanded, setExpanded]   = React.useState({});   // { claimId: bool }
+
+  const togExpand = (id) => setExpanded(p => ({ ...p, [id]: !p[id] }));
+
+  // ── Item helpers ──────────────────────────────────────────
+  const addItem    = () => setForm(p => ({ ...p, items: [...p.items, blankItem()] }));
+  const removeItem = (id) => setForm(p => ({ ...p, items: p.items.filter(x => x.id !== id) }));
+  const updateItem = (id, field, val) =>
+    setForm(p => ({ ...p, items: p.items.map(x => x.id === id ? { ...x, [field]: val } : x) }));
+
+  const itemTotal  = (item) => evalExpr(item.expr) || 0;
+  const grandTotal = form.items.reduce((s, item) => s + itemTotal(item), 0);
+  const allValid   = form.items.length > 0 && form.items.every(i => i.type && itemTotal(i) > 0);
+  const canSave    = form.driver && form.date && allValid;
+
+  // ── Status config ─────────────────────────────────────────
+  const SC2 = { submitted: "#3B82F6", processed: "#10B981", draft: "#6B7280" };
+  const SL2 = { submitted: "Submitted", processed: "Processed", draft: "Draft" };
+
+  // ── Helpers to read items from a claim ───────────────────
+  // Support both old format (no items array) and new format
+  const getItems = (c) => {
+    if (Array.isArray(c.items) && c.items.length > 0) return c.items;
+    // Legacy: single-item claim
+    if (c.type) return [{ type: c.type, expr: c.expr || '', total: c.total || 0 }];
+    return [];
+  };
+
+  const getTypes = (c) => {
+    const items = getItems(c);
+    const types = [...new Set(items.map(i => i.type).filter(Boolean))];
+    return types.length > 0 ? types : (c.types ? String(c.types).split(',').filter(Boolean) : []);
+  };
+
+  // ── Filter ────────────────────────────────────────────────
+  const allDrivers = [...new Set(claims.map(c => c.driver || c.driverName).filter(Boolean))];
+  const filtered   = claims.filter(c => {
+    const d = c.driver || c.driverName;
     return (fStat === "all" || c.status === fStat) && (fDriver === "all" || d === fDriver);
   });
-  var driverList = drivers && drivers.length > 0 ? drivers.map(function (d) {
-    return typeof d === "string" ? d : d.name;
-  }).filter(Boolean) : ["Budi Santoso", "Siti Rahayu", "Ahmad Fauzi", "Dewi Kusuma", "Reza Pratama"];
-  var save = /*#__PURE__*/function () {
-    var _ref20 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
-      var driverObj, driverEmail, submittedAt, groupId, newClaims;
-      return _regenerator().w(function (_context3) {
-        while (1) switch (_context3.n) {
-          case 0:
-            if (!(!canSave || submitting)) {
-              _context3.n = 1;
-              break;
-            }
-            return _context3.a(2);
-          case 1:
-            setSubmitting(true);
-            driverObj = (drivers || []).find(function (d) {
-              return (d.name || d) === form.driver;
-            });
-            driverEmail = driverObj && _typeof(driverObj) === "object" && driverObj.email ? driverObj.email.trim() : '';
-            submittedAt = new Date().toISOString();
-            groupId = "GRP-" + Date.now();
-            newClaims = form.items.map(function (item, idx) {
-              return {
-                id: "CLM-" + Date.now() + "-" + idx,
-                groupId: groupId,
-                driver: form.driver,
-                driverName: form.driver,
-                driverEmail: driverEmail,
-                date: form.date,
-                type: item.type,
-                expr: item.expr,
-                total: itemTotal(item),
-                status: "submitted",
-                note: form.note || "",
-                submittedAt: submittedAt
-              };
-            });
-            setClaims(function (p) {
-              return [].concat(_toConsumableArray(p), _toConsumableArray(newClaims));
-            });
-            setShow(false);
-            setForm(blankForm());
-            showToast("Claim diajukan! Notif dikirim ke driver \u2709\uFE0F");
-            if (!gasReady) {
-              _context3.n = 2;
-              break;
-            }
-            _context3.n = 2;
-            return gasCall("addClaim", {
-              groupId: groupId,
-              driverName: form.driver,
-              driverEmail: driverEmail,
-              date: form.date,
-              note: form.note || "",
-              submittedAt: submittedAt,
-              items: form.items.map(function (item, idx) {
-                return {
-                  id: newClaims[idx].id,
-                  type: item.type,
-                  expr: item.expr,
-                  total: itemTotal(item)
-                };
-              }),
-              grandTotal: grandTotal
-            });
-          case 2:
-            setSubmitting(false);
-          case 3:
-            return _context3.a(2);
-        }
-      }, _callee3);
+
+  const driverList = drivers && drivers.length > 0
+    ? drivers.map(d => typeof d === "string" ? d : d.name).filter(Boolean)
+    : ["Budi Santoso", "Siti Rahayu", "Ahmad Fauzi", "Dewi Kusuma", "Reza Pratama"];
+
+  // ── Submit ────────────────────────────────────────────────
+  const save = async () => {
+    if (!canSave || submitting) return;
+    setSubmitting(true);
+
+    const driverObj   = (drivers || []).find(d => (d.name || d) === form.driver);
+    const driverEmail = driverObj && typeof driverObj === "object" && driverObj.email
+      ? driverObj.email.trim() : '';
+    const submittedAt = new Date().toISOString();
+    const id          = "CLM-" + Date.now();
+
+    const itemsData = form.items.map(item => ({
+      type : item.type,
+      expr : item.expr,
+      total: itemTotal(item),
     }));
-    return function save() {
-      return _ref20.apply(this, arguments);
+
+    const newClaim = {
+      id,
+      driver      : form.driver,
+      driverName  : form.driver,
+      driverEmail,
+      date        : form.date,
+      types       : [...new Set(itemsData.map(i => i.type))].join(','),
+      items       : itemsData,
+      total       : grandTotal,
+      status      : "submitted",
+      note        : form.note || "",
+      submittedAt,
     };
-  }();
-  var del = /*#__PURE__*/function () {
-    var _ref21 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(id) {
-      var updated;
-      return _regenerator().w(function (_context4) {
-        while (1) switch (_context4.n) {
-          case 0:
-            updated = claims.filter(function (c) {
-              return c.id !== id;
-            });
-            setClaims(updated);
-            showToast("Claim dihapus", "error");
-            if (!gasReady) {
-              _context4.n = 2;
-              break;
-            }
-            _context4.n = 1;
-            return gasCall("deleteClaim", {
-              id: id
-            });
-          case 1:
-            _context4.n = 3;
-            break;
-          case 2:
-            _context4.n = 3;
-            return syncToGAS("saveClaims", {
-              claims: updated
-            });
-          case 3:
-            return _context4.a(2);
-        }
-      }, _callee4);
-    }));
-    return function del(_x6) {
-      return _ref21.apply(this, arguments);
-    };
-  }();
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 10,
-      alignItems: "center",
-      marginBottom: 18,
-      flexWrap: "wrap"
-    }
-  }, /*#__PURE__*/React.createElement("select", {
-    className: "inp",
-    style: {
-      width: "auto",
-      minWidth: 130
-    },
-    value: fStat,
-    onChange: function onChange(e) {
-      return setFStat(e.target.value);
-    }
-  }, /*#__PURE__*/React.createElement("option", {
-    value: "all"
-  }, "Semua Status"), Object.entries(SL2).map(function (_ref22) {
-    var _ref23 = _slicedToArray(_ref22, 2),
-      k = _ref23[0],
-      v = _ref23[1];
-    return /*#__PURE__*/React.createElement("option", {
-      key: k,
-      value: k
-    }, v);
-  })), /*#__PURE__*/React.createElement("select", {
-    className: "inp",
-    style: {
-      width: "auto",
-      minWidth: 150
-    },
-    value: fDriver,
-    onChange: function onChange(e) {
-      return setFDriver(e.target.value);
-    }
-  }, /*#__PURE__*/React.createElement("option", {
-    value: "all"
-  }, "Semua Driver"), allDrivers.map(function (d) {
-    return /*#__PURE__*/React.createElement("option", {
-      key: d,
-      value: d
-    }, d);
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-p",
-    onClick: function onClick() {
-      setForm(blankForm());
-      setShow(true);
-    }
-  }, /*#__PURE__*/React.createElement(Icon, {
-    d: IC.plus,
-    size: 15,
-    stroke: "#0A0E1A"
-  }), "Buat Claim")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 10,
-      marginBottom: 18,
-      flexWrap: "wrap",
-      alignItems: "center"
-    }
-  }, Object.entries(SL2).map(function (_ref24) {
-    var _ref25 = _slicedToArray(_ref24, 2),
-      s = _ref25[0],
-      label = _ref25[1];
-    var cnt = claims.filter(function (c) {
-      return c.status === s;
-    }).length;
-    return /*#__PURE__*/React.createElement("div", {
-      key: s,
-      onClick: function onClick() {
-        return setFStat(function (p) {
-          return p === s ? "all" : s;
-        });
-      },
-      style: {
-        background: SC2[s] + "18",
-        border: "1px solid ".concat(SC2[s], "35"),
-        borderRadius: 11,
-        padding: "9px 16px",
-        cursor: "pointer",
-        opacity: fStat !== "all" && fStat !== s ? 0.45 : 1,
-        transition: "opacity .15s"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 17,
-        fontWeight: 700,
-        color: SC2[s],
-        fontFamily: "'Space Grotesk',sans-serif"
-      }
-    }, cnt), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: "#6B7280"
-      }
-    }, label));
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginLeft: "auto",
-      fontSize: 12,
-      color: "#4B5563"
-    }
-  }, "Total: ", /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#00D4FF",
-      fontWeight: 700
-    }
-  }, "Rp ", fmt(filtered.reduce(function (s, c) {
-    return s + (c.total || 0);
-  }, 0))))), /*#__PURE__*/React.createElement("div", {
-    className: "glass",
-    style: {
-      overflow: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      overflowX: "auto"
-    }
-  }, /*#__PURE__*/React.createElement("table", {
-    style: {
-      width: "100%",
-      borderCollapse: "collapse"
-    }
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
-    style: {
-      borderBottom: "1px solid rgba(255,255,255,0.07)"
-    }
-  }, ["Tanggal", "Driver", "Jenis Claim", "Nominal", "Status", ""].map(function (h) {
-    return /*#__PURE__*/React.createElement("th", {
-      key: h,
-      style: {
-        padding: "12px 16px",
-        textAlign: "left",
-        fontSize: 11,
-        fontWeight: 600,
-        color: "#4B5563",
-        whiteSpace: "nowrap"
-      }
-    }, h);
-  }))), /*#__PURE__*/React.createElement("tbody", null, filtered.map(function (c) {
-    return /*#__PURE__*/React.createElement("tr", {
-      key: c.id,
-      className: "trow"
-    }, /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "12px 16px",
-        fontSize: 12,
-        color: "#9CA3AF",
-        whiteSpace: "nowrap"
-      }
-    }, fmtDate(c.date)), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "12px 16px",
-        fontSize: 13,
-        fontWeight: 600,
-        color: "#E2E8F0"
-      }
-    }, c.driver || c.driverName), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "12px 16px"
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      className: "tag",
-      style: {
-        background: "rgba(0,212,255,0.1)",
-        color: "#00D4FF"
-      }
-    }, c.type)), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "12px 16px",
-        fontSize: 14,
-        fontWeight: 700,
-        color: "#F1F5F9",
-        whiteSpace: "nowrap"
-      }
-    }, "Rp ", fmt(c.total)), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "12px 16px"
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      className: "badge",
-      style: {
-        background: (SC2[c.status] || "#6B7280") + "22",
-        color: SC2[c.status] || "#6B7280"
-      }
-    }, SL2[c.status] || c.status)), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "12px 16px"
-      }
-    }, /*#__PURE__*/React.createElement("button", {
-      className: "btn btn-d",
-      style: {
-        padding: "5px 8px"
-      },
-      onClick: function onClick() {
-        return del(c.id);
-      }
-    }, /*#__PURE__*/React.createElement(Icon, {
-      d: IC.trash,
-      size: 13
-    }))));
-  }), filtered.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-    colSpan: 6,
-    style: {
-      padding: "36px",
-      textAlign: "center",
-      color: "#4B5563",
-      fontSize: 14
-    }
-  }, "Tidak ada claim.")))))), show && /*#__PURE__*/React.createElement("div", {
-    className: "overlay",
-    onClick: function onClick(e) {
-      return e.target === e.currentTarget && setShow(false);
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "modal",
-    style: {
-      maxWidth: 500
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 22
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
-    style: {
-      fontFamily: "'Space Grotesk',sans-serif",
-      fontWeight: 700,
-      fontSize: 18
-    }
-  }, "Buat Claim"), /*#__PURE__*/React.createElement("p", {
-    style: {
-      fontSize: 12,
-      color: "#4B5563",
-      marginTop: 2
-    }
-  }, "Bisa input multiple jenis sekaligus")), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-s btn-sm",
-    style: {
-      padding: "6px 9px"
-    },
-    onClick: function onClick() {
-      return setShow(false);
-    }
-  }, /*#__PURE__*/React.createElement(Icon, {
-    d: IC.x,
-    size: 15
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 12,
-      marginBottom: 18
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: {
-      fontSize: 11,
-      color: "#6B7280",
-      fontWeight: 600,
-      display: "block",
-      marginBottom: 6
-    }
-  }, "TANGGAL PENGAJUAN"), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    className: "inp",
-    value: form.date,
-    onChange: function onChange(e) {
-      return setForm(function (p) {
-        return _objectSpread(_objectSpread({}, p), {}, {
-          date: e.target.value
-        });
+
+    setClaims(p => [...p, newClaim]);
+    setShow(false);
+    setForm(blankForm());
+    showToast("Claim diajukan! Notif dikirim ke driver ✉️");
+
+    if (gasReady) {
+      await gasCall("addClaim", {
+        id,
+        driverName  : form.driver,
+        driverEmail,
+        date        : form.date,
+        note        : form.note || "",
+        submittedAt,
+        items       : itemsData,
+        grandTotal,
       });
     }
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: {
-      fontSize: 11,
-      color: "#6B7280",
-      fontWeight: 600,
-      display: "block",
-      marginBottom: 6
-    }
-  }, "NAMA DRIVER"), /*#__PURE__*/React.createElement("select", {
-    className: "inp",
-    value: form.driver,
-    onChange: function onChange(e) {
-      return setForm(function (p) {
-        return _objectSpread(_objectSpread({}, p), {}, {
-          driver: e.target.value
-        });
-      });
-    }
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "Pilih Driver"), driverList.map(function (d) {
-    return /*#__PURE__*/React.createElement("option", {
-      key: d,
-      value: d
-    }, d);
-  })))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 10
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: {
-      fontSize: 11,
-      color: "#6B7280",
-      fontWeight: 600
-    }
-  }, "RINCIAN CLAIM"), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-s btn-sm",
-    style: {
-      fontSize: 12
-    },
-    onClick: addItem
-  }, /*#__PURE__*/React.createElement(Icon, {
-    d: IC.plus,
-    size: 13
-  }), "Tambah Baris")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "130px 1fr 28px",
-      gap: 8,
-      padding: "0 2px",
-      marginBottom: 6
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#4B5563",
-      fontWeight: 600
-    }
-  }, "Jenis"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "#4B5563",
-      fontWeight: 600
-    }
-  }, "Nominal"), /*#__PURE__*/React.createElement("div", null)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 8
-    }
-  }, form.items.map(function (item) {
-    var res = evalExpr(item.expr);
-    var ok = res !== null && res > 0;
-    var err = item.expr.trim() && !ok;
-    return /*#__PURE__*/React.createElement("div", {
-      key: item.id,
-      style: {
-        display: "grid",
-        gridTemplateColumns: "130px 1fr 28px",
-        gap: 8,
-        alignItems: "center"
-      }
-    }, /*#__PURE__*/React.createElement("select", {
-      className: "inp",
-      style: {
-        fontSize: 13,
-        padding: "9px 10px"
-      },
-      value: item.type,
-      onChange: function onChange(e) {
-        return updateItem(item.id, "type", e.target.value);
-      }
-    }, CLAIM_TYPES.map(function (t) {
-      return /*#__PURE__*/React.createElement("option", {
-        key: t,
-        value: t
-      }, t);
-    })), /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: "relative"
-      }
-    }, /*#__PURE__*/React.createElement("input", {
-      className: "inp",
-      style: {
-        paddingRight: item.expr.trim() ? 120 : 14,
-        fontFamily: "monospace",
-        fontSize: 13
-      },
-      placeholder: "0 atau 50000+30000",
-      value: item.expr,
-      onChange: function onChange(e) {
-        return updateItem(item.id, "expr", e.target.value);
-      }
-    }), item.expr.trim() && /*#__PURE__*/React.createElement("span", {
-      style: {
-        position: "absolute",
-        right: 10,
-        top: "50%",
-        transform: "translateY(-50%)",
-        fontSize: 12,
-        fontWeight: 700,
-        color: err ? "#EF4444" : "#00D4FF",
-        pointerEvents: "none",
-        whiteSpace: "nowrap"
-      }
-    }, err ? "invalid" : "= Rp ".concat(fmt(res)))), /*#__PURE__*/React.createElement("button", {
-      className: "btn btn-d",
-      style: {
-        padding: "7px",
-        justifyContent: "center",
-        opacity: form.items.length === 1 ? 0.25 : 1
-      },
-      onClick: function onClick() {
-        return form.items.length > 1 && removeItem(item.id);
-      }
-    }, /*#__PURE__*/React.createElement(Icon, {
-      d: IC.x,
-      size: 12
-    })));
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 18
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: {
-      fontSize: 11,
-      color: "#6B7280",
-      fontWeight: 600,
-      display: "block",
-      marginBottom: 6
-    }
-  }, "CATATAN (opsional)"), /*#__PURE__*/React.createElement("input", {
-    className: "inp",
-    placeholder: "Keterangan tambahan...",
-    value: form.note,
-    onChange: function onChange(e) {
-      return setForm(function (p) {
-        return _objectSpread(_objectSpread({}, p), {}, {
-          note: e.target.value
-        });
-      });
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "rgba(0,212,255,0.05)",
-      border: "1px solid rgba(0,212,255,0.2)",
-      borderRadius: 12,
-      padding: "14px 18px",
-      marginBottom: 18
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#6B7280",
-      fontWeight: 600,
-      marginBottom: 10
-    }
-  }, "RINGKASAN CLAIM"), form.items.map(function (item) {
-    var res = evalExpr(item.expr);
-    return res > 0 ? /*#__PURE__*/React.createElement("div", {
-      key: item.id,
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        marginBottom: 6
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 13,
-        color: "#CBD5E1"
-      }
-    }, item.type), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 13,
-        color: "#E2E8F0",
-        fontWeight: 500
-      }
-    }, "Rp ", fmt(res))) : null;
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      borderTop: "1px solid rgba(0,212,255,0.2)",
-      marginTop: 10,
-      paddingTop: 10,
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      fontWeight: 700,
-      color: "#CBD5E1"
-    }
-  }, "TOTAL"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontFamily: "'Space Grotesk',sans-serif",
-      fontWeight: 800,
-      fontSize: 22,
-      color: grandTotal > 0 ? "#00D4FF" : "#374151"
-    }
-  }, grandTotal > 0 ? "Rp ".concat(fmt(grandTotal)) : "—"))), gasReady && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "#10B981",
-      background: "rgba(16,185,129,0.08)",
-      border: "1px solid rgba(16,185,129,0.2)",
-      borderRadius: 8,
-      padding: "8px 12px",
-      marginBottom: 14,
-      display: "flex",
-      alignItems: "center",
-      gap: 8
-    }
-  }, "\u2709\uFE0F Notifikasi akan dikirim ke driver setelah submit"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 9
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-s",
-    style: {
-      flex: 1
-    },
-    onClick: function onClick() {
-      return setShow(false);
-    }
-  }, "Batal"), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-p",
-    style: {
-      flex: 2,
-      opacity: canSave && !submitting ? 1 : 0.4,
-      cursor: canSave && !submitting ? "pointer" : "not-allowed"
-    },
-    onClick: save
-  }, submitting ? /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 7
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 13,
-      height: 13,
-      borderRadius: "50%",
-      border: "2px solid #0A0E1A",
-      borderTopColor: "transparent",
-      animation: "spin .7s linear infinite",
-      display: "inline-block"
-    }
-  }), "Mengirim...") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Icon, {
-    d: IC.check,
-    size: 15,
-    stroke: "#0A0E1A"
-  }), "Submit Claim"))))));
+    setSubmitting(false);
+  };
+
+  // ── Delete ────────────────────────────────────────────────
+  const del = async (id) => {
+    const updated = claims.filter(c => c.id !== id);
+    setClaims(updated);
+    showToast("Claim dihapus", "error");
+    if (gasReady) await gasCall("deleteClaim", { id });
+    else syncToGAS("saveClaims", { claims: updated });
+  };
+
+  // ── TYPE_COLOR helper ─────────────────────────────────────
+  const TYPE_COL = {
+    Gasoline   : "#10B981",
+    Toll       : "#3B82F6",
+    Parking    : "#F59E0B",
+    Service    : "#EF4444",
+    Maintenance: "#EC4899",
+    Other      : "#8B5CF6",
+  };
+
+  // ── RENDER ────────────────────────────────────────────────
+  return React.createElement("div", null,
+
+    // ── Top bar ──
+    React.createElement("div", { style: { display:"flex", gap:10, alignItems:"center", marginBottom:18, flexWrap:"wrap" } },
+      React.createElement("select", { className:"inp", style:{ width:"auto", minWidth:130 }, value:fStat,
+        onChange: e => setFStat(e.target.value) },
+        React.createElement("option", { value:"all" }, "Semua Status"),
+        Object.entries(SL2).map(([k,v]) => React.createElement("option", { key:k, value:k }, v))
+      ),
+      React.createElement("select", { className:"inp", style:{ width:"auto", minWidth:150 }, value:fDriver,
+        onChange: e => setFDriver(e.target.value) },
+        React.createElement("option", { value:"all" }, "Semua Driver"),
+        allDrivers.map(d => React.createElement("option", { key:d, value:d }, d))
+      ),
+      React.createElement("div", { style:{ flex:1 } }),
+      React.createElement("button", { className:"btn btn-p",
+        onClick: () => { setForm(blankForm()); setShow(true); } },
+        React.createElement(Icon, { d: IC.plus, size:15, stroke:"#0A0E1A" }), "Buat Claim"
+      )
+    ),
+
+    // ── Status summary chips ──
+    React.createElement("div", { style:{ display:"flex", gap:10, marginBottom:18, flexWrap:"wrap", alignItems:"center" } },
+      Object.entries(SL2).map(([s, label]) => {
+        const cnt = claims.filter(c => c.status === s).length;
+        return React.createElement("div", { key:s,
+          onClick: () => setFStat(p => p === s ? "all" : s),
+          style: { background: SC2[s]+"18", border:`1px solid ${SC2[s]}35`, borderRadius:11,
+            padding:"9px 16px", cursor:"pointer", opacity: fStat !== "all" && fStat !== s ? 0.45 : 1, transition:"opacity .15s" } },
+          React.createElement("div", { style:{ fontSize:17, fontWeight:700, color:SC2[s], fontFamily:"'Space Grotesk',sans-serif" } }, cnt),
+          React.createElement("div", { style:{ fontSize:11, color:"#6B7280" } }, label)
+        );
+      }),
+      React.createElement("div", { style:{ marginLeft:"auto", fontSize:12, color:"#4B5563" } },
+        "Total: ", React.createElement("span", { style:{ color:"#00D4FF", fontWeight:700 } },
+          "Rp ", fmt(filtered.reduce((s,c) => s + (c.total||0), 0))
+        )
+      )
+    ),
+
+    // ── Claims table ──
+    React.createElement("div", { className:"glass", style:{ overflow:"hidden" } },
+      React.createElement("div", { style:{ overflowX:"auto" } },
+        React.createElement("table", { style:{ width:"100%", borderCollapse:"collapse" } },
+
+          // thead
+          React.createElement("thead", null,
+            React.createElement("tr", { style:{ borderBottom:"1px solid rgba(255,255,255,0.07)" } },
+              ["", "Tanggal", "Driver", "Rincian Claim", "Total", "Status", ""].map(h =>
+                React.createElement("th", { key:h, style:{ padding:"12px 14px", textAlign:"left",
+                  fontSize:11, fontWeight:600, color:"#4B5563", whiteSpace:"nowrap" } }, h)
+              )
+            )
+          ),
+
+          // tbody
+          React.createElement("tbody", null,
+            filtered.length === 0
+              ? React.createElement("tr", null,
+                  React.createElement("td", { colSpan:7, style:{ padding:"36px", textAlign:"center", color:"#4B5563", fontSize:14 } },
+                    "Tidak ada claim."))
+              : filtered.map(c => {
+                  const items   = getItems(c);
+                  const types   = getTypes(c);
+                  const isExp   = !!expanded[c.id];
+                  const driver  = c.driver || c.driverName;
+
+                  return React.createElement(React.Fragment, { key: c.id },
+
+                    // ── Main row ──
+                    React.createElement("tr", { className:"trow",
+                      style:{ cursor:"pointer", background: isExp ? "rgba(0,212,255,0.03)" : "transparent" },
+                      onClick: () => togExpand(c.id) },
+
+                      // expand chevron
+                      React.createElement("td", { style:{ padding:"12px 10px 12px 14px", width:24 } },
+                        React.createElement("div", { style:{ color:"#4B5563", transition:"transform .2s",
+                          transform: isExp ? "rotate(180deg)" : "rotate(0)" } },
+                          React.createElement(Icon, { d: IC.chevDown, size:15 })
+                        )
+                      ),
+
+                      // date
+                      React.createElement("td", { style:{ padding:"12px 14px", fontSize:12, color:"#9CA3AF", whiteSpace:"nowrap" } },
+                        fmtDate(c.date)
+                      ),
+
+                      // driver
+                      React.createElement("td", { style:{ padding:"12px 14px", fontSize:13, fontWeight:600, color:"#E2E8F0" } },
+                        driver
+                      ),
+
+                      // rincian — type badges + ringkasan
+                      React.createElement("td", { style:{ padding:"12px 14px" } },
+                        React.createElement("div", { style:{ display:"flex", flexWrap:"wrap", gap:5, marginBottom: items.length > 1 ? 5 : 0 } },
+                          types.map(t =>
+                            React.createElement("span", { key:t, className:"tag",
+                              style:{ background:(TYPE_COL[t]||"#6B7280")+"18", color: TYPE_COL[t]||"#6B7280", fontSize:11 } }, t)
+                          )
+                        ),
+                        items.length > 1 && React.createElement("div", { style:{ fontSize:11, color:"#4B5563" } },
+                          items.length + " item"
+                        )
+                      ),
+
+                      // total
+                      React.createElement("td", { style:{ padding:"12px 14px", fontSize:14, fontWeight:700,
+                        color:"#F1F5F9", whiteSpace:"nowrap" } },
+                        "Rp ", fmt(c.total)
+                      ),
+
+                      // status
+                      React.createElement("td", { style:{ padding:"12px 14px" } },
+                        React.createElement("span", { className:"badge",
+                          style:{ background:(SC2[c.status]||"#6B7280")+"22", color: SC2[c.status]||"#6B7280" } },
+                          SL2[c.status] || c.status)
+                      ),
+
+                      // delete
+                      React.createElement("td", { style:{ padding:"12px 14px" } },
+                        React.createElement("button", { className:"btn btn-d", style:{ padding:"5px 8px" },
+                          onClick: e => { e.stopPropagation(); del(c.id); } },
+                          React.createElement(Icon, { d: IC.trash, size:13 })
+                        )
+                      )
+                    ),
+
+                    // ── Expanded detail rows ──
+                    isExp && React.createElement("tr", { key: c.id + "-detail" },
+                      React.createElement("td", { colSpan:7, style:{ padding:"0 14px 14px 48px",
+                        background:"rgba(0,212,255,0.02)", borderBottom:"1px solid rgba(255,255,255,0.05)" } },
+
+                        // items breakdown table
+                        React.createElement("div", { style:{ background:"rgba(255,255,255,0.03)",
+                          border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, overflow:"hidden",
+                          marginTop:4, maxWidth:520 } },
+
+                          React.createElement("table", { style:{ width:"100%", borderCollapse:"collapse", fontSize:12 } },
+                            React.createElement("thead", null,
+                              React.createElement("tr", { style:{ background:"rgba(0,212,255,0.07)" } },
+                                ["Jenis", "Rincian", "Nominal"].map(h =>
+                                  React.createElement("th", { key:h, style:{ padding:"7px 12px", textAlign: h==="Nominal" ? "right" : "left",
+                                    fontSize:10, fontWeight:600, color:"#4B5563", textTransform:"uppercase", letterSpacing:"0.4px" } }, h)
+                                )
+                              )
+                            ),
+                            React.createElement("tbody", null,
+                              items.map((item, idx) =>
+                                React.createElement("tr", { key:idx,
+                                  style:{ borderTop:"1px solid rgba(255,255,255,0.05)" } },
+                                  React.createElement("td", { style:{ padding:"7px 12px" } },
+                                    React.createElement("span", { className:"tag",
+                                      style:{ background:(TYPE_COL[item.type]||"#6B7280")+"18",
+                                        color: TYPE_COL[item.type]||"#6B7280", fontSize:11 } },
+                                      item.type)
+                                  ),
+                                  React.createElement("td", { style:{ padding:"7px 12px", fontFamily:"monospace",
+                                    color:"#9CA3AF", fontSize:11 } },
+                                    item.expr || "-"
+                                  ),
+                                  React.createElement("td", { style:{ padding:"7px 12px", textAlign:"right",
+                                    fontWeight:600, color:"#E2E8F0" } },
+                                    "Rp ", fmt(item.total || 0)
+                                  )
+                                )
+                              )
+                            ),
+                            // total footer
+                            React.createElement("tfoot", null,
+                              React.createElement("tr", { style:{ borderTop:"1px solid rgba(0,212,255,0.2)",
+                                background:"rgba(0,212,255,0.05)" } },
+                                React.createElement("td", { colSpan:2, style:{ padding:"8px 12px",
+                                  fontSize:12, fontWeight:700, color:"#CBD5E1" } }, "TOTAL"),
+                                React.createElement("td", { style:{ padding:"8px 12px", textAlign:"right",
+                                  fontFamily:"'Space Grotesk',sans-serif", fontWeight:800,
+                                  fontSize:14, color:"#00D4FF" } },
+                                  "Rp ", fmt(c.total)
+                                )
+                              )
+                            )
+                          )
+                        ),
+
+                        // note if exists
+                        c.note && React.createElement("div", { style:{ marginTop:8, fontSize:11,
+                          color:"#6B7280", fontStyle:"italic" } },
+                          "Catatan: ", React.createElement("span", { style:{ color:"#9CA3AF" } }, c.note)
+                        ),
+
+                        // claim ID & submitted at
+                        React.createElement("div", { style:{ marginTop:6, fontSize:10, color:"#374151" } },
+                          "ID: ", React.createElement("span", { style:{ fontFamily:"monospace", color:"#4B5563" } }, c.id),
+                          c.submittedAt && React.createElement("span", null,
+                            "  ·  Diajukan: ", fmtDate(c.submittedAt)
+                          )
+                        )
+                      )
+                    )
+                  );
+                })
+          )
+        )
+      )
+    ),
+
+    // ══════════════════════════════════════════════════════
+    //  MODAL: Buat Claim
+    // ══════════════════════════════════════════════════════
+    show && React.createElement("div", { className:"overlay",
+      onClick: e => e.target === e.currentTarget && setShow(false) },
+
+      React.createElement("div", { className:"modal", style:{ maxWidth:500 } },
+
+        // header
+        React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:22 } },
+          React.createElement("div", null,
+            React.createElement("h2", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:18 } }, "Buat Claim"),
+            React.createElement("p", { style:{ fontSize:12, color:"#4B5563", marginTop:2 } }, "Bisa input multiple jenis sekaligus")
+          ),
+          React.createElement("button", { className:"btn btn-s btn-sm", style:{ padding:"6px 9px" }, onClick: () => setShow(false) },
+            React.createElement(Icon, { d: IC.x, size:15 })
+          )
+        ),
+
+        // date + driver
+        React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:18 } },
+          React.createElement("div", null,
+            React.createElement("label", { style:{ fontSize:11, color:"#6B7280", fontWeight:600, display:"block", marginBottom:6 } }, "TANGGAL PENGAJUAN"),
+            React.createElement("input", { type:"date", className:"inp", value:form.date,
+              onChange: e => setForm(p => ({ ...p, date: e.target.value })) })
+          ),
+          React.createElement("div", null,
+            React.createElement("label", { style:{ fontSize:11, color:"#6B7280", fontWeight:600, display:"block", marginBottom:6 } }, "NAMA DRIVER"),
+            React.createElement("select", { className:"inp", value:form.driver,
+              onChange: e => setForm(p => ({ ...p, driver: e.target.value })) },
+              React.createElement("option", { value:"" }, "Pilih Driver"),
+              driverList.map(d => React.createElement("option", { key:d, value:d }, d))
+            )
+          )
+        ),
+
+        // items
+        React.createElement("div", { style:{ marginBottom:16 } },
+          React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 } },
+            React.createElement("label", { style:{ fontSize:11, color:"#6B7280", fontWeight:600 } }, "RINCIAN CLAIM"),
+            React.createElement("button", { className:"btn btn-s btn-sm", style:{ fontSize:12 }, onClick: addItem },
+              React.createElement(Icon, { d: IC.plus, size:13 }), "Tambah Baris"
+            )
+          ),
+          // column headers
+          React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"130px 1fr 28px", gap:8, padding:"0 2px", marginBottom:6 } },
+            React.createElement("div", { style:{ fontSize:11, color:"#4B5563", fontWeight:600 } }, "Jenis"),
+            React.createElement("div", { style:{ fontSize:11, color:"#4B5563", fontWeight:600 } }, "Nominal"),
+            React.createElement("div", null)
+          ),
+          // item rows
+          React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:8 } },
+            form.items.map(item => {
+              const res = evalExpr(item.expr);
+              const ok  = res !== null && res > 0;
+              const err = item.expr.trim() && !ok;
+              return React.createElement("div", { key: item.id,
+                style:{ display:"grid", gridTemplateColumns:"130px 1fr 28px", gap:8, alignItems:"center" } },
+                React.createElement("select", { className:"inp", style:{ fontSize:13, padding:"9px 10px" },
+                  value: item.type, onChange: e => updateItem(item.id, "type", e.target.value) },
+                  CLAIM_TYPES.map(t => React.createElement("option", { key:t, value:t }, t))
+                ),
+                React.createElement("div", { style:{ position:"relative" } },
+                  React.createElement("input", { className:"inp",
+                    style:{ paddingRight: item.expr.trim() ? 120 : 14, fontFamily:"monospace", fontSize:13 },
+                    placeholder:"0 atau 50000+30000", value: item.expr,
+                    onChange: e => updateItem(item.id, "expr", e.target.value) }),
+                  item.expr.trim() && React.createElement("span", {
+                    style:{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)",
+                      fontSize:12, fontWeight:700, color: err ? "#EF4444" : "#00D4FF",
+                      pointerEvents:"none", whiteSpace:"nowrap" } },
+                    err ? "invalid" : "= Rp " + fmt(res)
+                  )
+                ),
+                React.createElement("button", { className:"btn btn-d",
+                  style:{ padding:"7px", justifyContent:"center", opacity: form.items.length === 1 ? 0.25 : 1 },
+                  onClick: () => form.items.length > 1 && removeItem(item.id) },
+                  React.createElement(Icon, { d: IC.x, size:12 })
+                )
+              );
+            })
+          )
+        ),
+
+        // note
+        React.createElement("div", { style:{ marginBottom:18 } },
+          React.createElement("label", { style:{ fontSize:11, color:"#6B7280", fontWeight:600, display:"block", marginBottom:6 } }, "CATATAN (opsional)"),
+          React.createElement("input", { className:"inp", placeholder:"Keterangan tambahan...", value:form.note,
+            onChange: e => setForm(p => ({ ...p, note: e.target.value })) })
+        ),
+
+        // summary box
+        React.createElement("div", { style:{ background:"rgba(0,212,255,0.05)", border:"1px solid rgba(0,212,255,0.2)",
+          borderRadius:12, padding:"14px 18px", marginBottom:18 } },
+          React.createElement("div", { style:{ fontSize:12, color:"#6B7280", fontWeight:600, marginBottom:10 } }, "RINGKASAN CLAIM"),
+          form.items.map(item => {
+            const res = evalExpr(item.expr);
+            return res > 0 ? React.createElement("div", { key: item.id,
+              style:{ display:"flex", justifyContent:"space-between", marginBottom:6 } },
+              React.createElement("div", { style:{ display:"flex", alignItems:"center", gap:6 } },
+                React.createElement("span", { className:"tag",
+                  style:{ background:(TYPE_COL[item.type]||"#6B7280")+"18", color: TYPE_COL[item.type]||"#6B7280", fontSize:11 } },
+                  item.type),
+                item.expr && React.createElement("span", { style:{ fontSize:11, color:"#4B5563", fontFamily:"monospace" } },
+                  item.expr)
+              ),
+              React.createElement("span", { style:{ fontSize:13, color:"#E2E8F0", fontWeight:500 } },
+                "Rp ", fmt(res))
+            ) : null;
+          }),
+          React.createElement("div", { style:{ borderTop:"1px solid rgba(0,212,255,0.2)", marginTop:10, paddingTop:10,
+            display:"flex", justifyContent:"space-between", alignItems:"center" } },
+            React.createElement("span", { style:{ fontSize:14, fontWeight:700, color:"#CBD5E1" } }, "TOTAL"),
+            React.createElement("span", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:800, fontSize:22,
+              color: grandTotal > 0 ? "#00D4FF" : "#374151" } },
+              grandTotal > 0 ? "Rp " + fmt(grandTotal) : "—"
+            )
+          )
+        ),
+
+        // GAS notice
+        gasReady && React.createElement("div", { style:{ fontSize:12, color:"#10B981",
+          background:"rgba(16,185,129,0.08)", border:"1px solid rgba(16,185,129,0.2)",
+          borderRadius:8, padding:"8px 12px", marginBottom:14, display:"flex", alignItems:"center", gap:8 } },
+          "✉️ Notifikasi akan dikirim ke driver setelah submit"
+        ),
+
+        // action buttons
+        React.createElement("div", { style:{ display:"flex", gap:9 } },
+          React.createElement("button", { className:"btn btn-s", style:{ flex:1 }, onClick: () => setShow(false) }, "Batal"),
+          React.createElement("button", { className:"btn btn-p",
+            style:{ flex:2, opacity: canSave && !submitting ? 1 : 0.4,
+              cursor: canSave && !submitting ? "pointer" : "not-allowed" },
+            onClick: save },
+            submitting
+              ? React.createElement("span", { style:{ display:"flex", alignItems:"center", gap:7 } },
+                  React.createElement("span", { style:{ width:13, height:13, borderRadius:"50%",
+                    border:"2px solid #0A0E1A", borderTopColor:"transparent",
+                    animation:"spin .7s linear infinite", display:"inline-block" } }),
+                  "Mengirim...")
+              : React.createElement(React.Fragment, null,
+                  React.createElement(Icon, { d: IC.check, size:15, stroke:"#0A0E1A" }),
+                  "Submit Claim"
+                )
+          )
+        )
+      )
+    )
+  );
 }
 function FuelCtrl(_ref26) {
   var bbm = _ref26.bbm,
