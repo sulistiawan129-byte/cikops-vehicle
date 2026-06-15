@@ -61,43 +61,43 @@ function gasCall(_x, _x2) {
   return _gasCall.apply(this, arguments);
 } // Shorthand helpers
 function _gasCall() {
-  _gasCall = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee12(action, payload) {
-    var url, res, json, _t;
-    return _regenerator().w(function (_context12) {
-      while (1) switch (_context12.p = _context12.n) {
+  _gasCall = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee13(action, payload) {
+    var url, res, json, _t2;
+    return _regenerator().w(function (_context13) {
+      while (1) switch (_context13.p = _context13.n) {
         case 0:
           if (GAS_URL) {
-            _context12.n = 1;
+            _context13.n = 1;
             break;
           }
-          return _context12.a(2, null);
+          return _context13.a(2, null);
         case 1:
-          _context12.p = 1;
+          _context13.p = 1;
           // Encode payload as URL param — GET request tidak trigger CORS preflight
           url = GAS_URL + "?action=" + encodeURIComponent(action) + (payload ? "&payload=" + encodeURIComponent(JSON.stringify(payload)) : "");
-          _context12.n = 2;
+          _context13.n = 2;
           return fetch(url);
         case 2:
-          res = _context12.v;
-          _context12.n = 3;
+          res = _context13.v;
+          _context13.n = 3;
           return res.json();
         case 3:
-          json = _context12.v;
+          json = _context13.v;
           if (json.ok) {
-            _context12.n = 4;
+            _context13.n = 4;
             break;
           }
           console.error("GAS error:", json.error);
-          return _context12.a(2, null);
+          return _context13.a(2, null);
         case 4:
-          return _context12.a(2, json.data);
+          return _context13.a(2, json.data);
         case 5:
-          _context12.p = 5;
-          _t = _context12.v;
-          console.error("GAS call error [" + action + "]:", _t);
-          return _context12.a(2, null);
+          _context13.p = 5;
+          _t2 = _context13.v;
+          console.error("GAS call error [" + action + "]:", _t2);
+          return _context13.a(2, null);
       }
-    }, _callee12, null, [[1, 5]]);
+    }, _callee13, null, [[1, 5]]);
   }));
   return _gasCall.apply(this, arguments);
 }
@@ -111,23 +111,23 @@ function syncToGAS(_x3, _x4) {
   return _syncToGAS.apply(this, arguments);
 }
 function _syncToGAS() {
-  _syncToGAS = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee13(action, payload) {
-    return _regenerator().w(function (_context13) {
-      while (1) switch (_context13.n) {
+  _syncToGAS = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14(action, payload) {
+    return _regenerator().w(function (_context14) {
+      while (1) switch (_context14.n) {
         case 0:
           if (GAS_URL) {
-            _context13.n = 1;
+            _context14.n = 1;
             break;
           }
-          return _context13.a(2);
+          return _context14.a(2);
         case 1:
           gasCall(action, payload).catch(function (e) {
             return console.error("Sync bg error:", e);
           });
         case 2:
-          return _context13.a(2);
+          return _context14.a(2);
       }
-    }, _callee13);
+    }, _callee14);
   }));
   return _syncToGAS.apply(this, arguments);
 }
@@ -182,7 +182,8 @@ var IC = {
   budget: ["M12 2L2 7l10 5 10-5-10-5z", "M2 17l10 5 10-5", "M2 12l10 5 10-5"],
   sliders: ["M4 21v-7", "M4 10V3", "M12 21v-9", "M12 8V3", "M20 21v-5", "M20 12V3", "M1 14h6", "M9 8h6", "M17 16h6"],
   transfer: ["M17 1l4 4-4 4", "M3 11V9a4 4 0 014-4h14", "M7 23l-4-4 4-4", "M21 13v2a4 4 0 01-4 4H3"],
-  refresh: ["M23 4v6h-6", "M1 20v-6h6", "M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"]
+  refresh: ["M23 4v6h-6", "M1 20v-6h6", "M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"],
+  download: ["M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4", "M7 10l5 5 5-5", "M12 15V3"]
 };
 var DRIVERS = ["Budi Santoso", "Siti Rahayu", "Ahmad Fauzi", "Dewi Kusuma", "Reza Pratama", "Hendra Wijaya"];
 var INIT_DRIVERS = DRIVERS.map(function (name, i) {
@@ -1054,7 +1055,8 @@ function App() {
     showToast: showToast
   }), page === "reports" && /*#__PURE__*/React.createElement(Reports, {
     claims: claims || [],
-    vehicles: vehicles || []
+    vehicles: vehicles || [],
+    showToast: showToast
   }), page === "documents" && /*#__PURE__*/React.createElement(Documents, {
     vehicles: vehicles || [],
     setVehicles: setVehicles,
@@ -1932,7 +1934,6 @@ function Claims(_ref19) {
   };
   var blankForm = function blankForm() {
     return {
-      vehicleId: "",
       driver: "",
       date: today,
       items: [blankItem()],
@@ -1986,20 +1987,28 @@ function Claims(_ref19) {
       });
     });
   };
-
-  // Per-item computed totals
   var itemTotal = function itemTotal(item) {
     return evalExpr(item.expr) || 0;
   };
   var grandTotal = form.items.reduce(function (s, item) {
     return s + itemTotal(item);
   }, 0);
-  var allValid = form.items.every(function (item) {
-    return item.type && evalExpr(item.expr) > 0;
+  var allValid = form.items.length > 0 && form.items.every(function (item) {
+    return item.type && itemTotal(item) > 0;
   });
-  var canSave = form.vehicleId && form.driver && form.date && form.items.length > 0 && allValid;
+  var canSave = form.driver && form.date && allValid;
 
-  // Filter
+  // Status — simplified: submitted → processed only
+  var SC2 = {
+    submitted: "#3B82F6",
+    processed: "#10B981",
+    draft: "#6B7280"
+  };
+  var SL2 = {
+    submitted: "Submitted",
+    processed: "Processed",
+    draft: "Draft"
+  };
   var allDrivers = _toConsumableArray(new Set(claims.map(function (c) {
     return c.driver || c.driverName;
   }).filter(Boolean)));
@@ -2007,9 +2016,12 @@ function Claims(_ref19) {
     var d = c.driver || c.driverName;
     return (fStat === "all" || c.status === fStat) && (fDriver === "all" || d === fDriver);
   });
+  var driverList = drivers && drivers.length > 0 ? drivers.map(function (d) {
+    return typeof d === "string" ? d : d.name;
+  }).filter(Boolean) : ["Budi Santoso", "Siti Rahayu", "Ahmad Fauzi", "Dewi Kusuma", "Reza Pratama"];
   var save = /*#__PURE__*/function () {
     var _ref20 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
-      var vehicle, driverObj, driverEmail, submittedAt, groupId, newClaims, updated;
+      var driverObj, driverEmail, submittedAt, groupId, newClaims;
       return _regenerator().w(function (_context3) {
         while (1) switch (_context3.n) {
           case 0:
@@ -2020,20 +2032,16 @@ function Claims(_ref19) {
             return _context3.a(2);
           case 1:
             setSubmitting(true);
-            vehicle = vehicles.find(function (v) {
-              return String(v.id) === String(form.vehicleId);
-            }); // Get real email from drivers list (from Sheets), fallback to empty
             driverObj = (drivers || []).find(function (d) {
               return (d.name || d) === form.driver;
             });
-            driverEmail = driverObj && _typeof(driverObj) === 'object' && driverObj.email ? driverObj.email.trim() : '';
-            submittedAt = new Date().toISOString(); // Each item becomes its own claim row (linked by groupId)
+            driverEmail = driverObj && _typeof(driverObj) === "object" && driverObj.email ? driverObj.email.trim() : '';
+            submittedAt = new Date().toISOString();
             groupId = "GRP-" + Date.now();
             newClaims = form.items.map(function (item, idx) {
               return {
                 id: "CLM-" + Date.now() + "-" + idx,
                 groupId: groupId,
-                vehicleId: String(form.vehicleId),
                 driver: form.driver,
                 driverName: form.driver,
                 driverEmail: driverEmail,
@@ -2046,11 +2054,12 @@ function Claims(_ref19) {
                 submittedAt: submittedAt
               };
             });
-            updated = [].concat(_toConsumableArray(claims), _toConsumableArray(newClaims));
-            setClaims(updated);
+            setClaims(function (p) {
+              return [].concat(_toConsumableArray(p), _toConsumableArray(newClaims));
+            });
             setShow(false);
             setForm(blankForm());
-            showToast("".concat(newClaims.length, " claim diajukan! Email dikirim ke driver \u2709\uFE0F"));
+            showToast("Claim diajukan! Notif dikirim ke driver \u2709\uFE0F");
             if (!gasReady) {
               _context3.n = 2;
               break;
@@ -2058,13 +2067,10 @@ function Claims(_ref19) {
             _context3.n = 2;
             return gasCall("addClaim", {
               groupId: groupId,
-              vehicleId: String(form.vehicleId),
               driverName: form.driver,
               driverEmail: driverEmail,
               date: form.date,
               note: form.note || "",
-              vehiclePlate: (vehicle === null || vehicle === void 0 ? void 0 : vehicle.plate) || "",
-              vehicleType: (vehicle === null || vehicle === void 0 ? void 0 : vehicle.type) || "",
               submittedAt: submittedAt,
               items: form.items.map(function (item, idx) {
                 return {
@@ -2087,24 +2093,19 @@ function Claims(_ref19) {
       return _ref20.apply(this, arguments);
     };
   }();
-  var NEXT = {
-    draft: ["submitted"],
-    submitted: ["approved", "draft"],
-    approved: ["paid"]
-  };
-  var updStatus = /*#__PURE__*/function () {
-    var _ref21 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(id, s) {
+  var markProcessed = /*#__PURE__*/function () {
+    var _ref21 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(id) {
       var updated;
       return _regenerator().w(function (_context4) {
         while (1) switch (_context4.n) {
           case 0:
             updated = claims.map(function (c) {
               return c.id === id ? _objectSpread(_objectSpread({}, c), {}, {
-                status: s
+                status: "processed"
               }) : c;
             });
             setClaims(updated);
-            showToast("Status \u2192 ".concat(SL[s]));
+            showToast("Claim diproses!");
             if (!gasReady) {
               _context4.n = 2;
               break;
@@ -2112,7 +2113,7 @@ function Claims(_ref19) {
             _context4.n = 1;
             return gasCall("updateClaimStatus", {
               id: id,
-              status: s
+              status: "processed"
             });
           case 1:
             _context4.n = 3;
@@ -2127,7 +2128,7 @@ function Claims(_ref19) {
         }
       }, _callee4);
     }));
-    return function updStatus(_x6, _x7) {
+    return function markProcessed(_x6) {
       return _ref21.apply(this, arguments);
     };
   }();
@@ -2163,13 +2164,10 @@ function Claims(_ref19) {
         }
       }, _callee5);
     }));
-    return function del(_x8) {
+    return function del(_x7) {
       return _ref22.apply(this, arguments);
     };
   }();
-  var driverList = drivers && drivers.length > 0 ? drivers.map(function (d) {
-    return typeof d === "string" ? d : d.name;
-  }).filter(Boolean) : ["Budi Santoso", "Siti Rahayu", "Ahmad Fauzi", "Dewi Kusuma", "Reza Pratama", "Hendra Wijaya"];
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -2190,11 +2188,14 @@ function Claims(_ref19) {
     }
   }, /*#__PURE__*/React.createElement("option", {
     value: "all"
-  }, "Semua Status"), ["draft", "submitted", "approved", "paid"].map(function (s) {
+  }, "Semua Status"), Object.entries(SL2).map(function (_ref23) {
+    var _ref24 = _slicedToArray(_ref23, 2),
+      k = _ref24[0],
+      v = _ref24[1];
     return /*#__PURE__*/React.createElement("option", {
-      key: s,
-      value: s
-    }, SL[s]);
+      key: k,
+      value: k
+    }, v);
   })), /*#__PURE__*/React.createElement("select", {
     className: "inp",
     style: {
@@ -2234,7 +2235,10 @@ function Claims(_ref19) {
       flexWrap: "wrap",
       alignItems: "center"
     }
-  }, ["draft", "submitted", "approved", "paid"].map(function (s) {
+  }, Object.entries(SL2).map(function (_ref25) {
+    var _ref26 = _slicedToArray(_ref25, 2),
+      s = _ref26[0],
+      label = _ref26[1];
     var cnt = claims.filter(function (c) {
       return c.status === s;
     }).length;
@@ -2246,19 +2250,19 @@ function Claims(_ref19) {
         });
       },
       style: {
-        background: SC[s] + "12",
-        border: "1px solid ".concat(SC[s], "30"),
+        background: SC2[s] + "18",
+        border: "1px solid ".concat(SC2[s], "35"),
         borderRadius: 11,
         padding: "9px 16px",
         cursor: "pointer",
-        opacity: fStat !== "all" && fStat !== s ? 0.5 : 1,
+        opacity: fStat !== "all" && fStat !== s ? 0.45 : 1,
         transition: "opacity .15s"
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 17,
         fontWeight: 700,
-        color: SC[s],
+        color: SC2[s],
         fontFamily: "'Space Grotesk',sans-serif"
       }
     }, cnt), /*#__PURE__*/React.createElement("div", {
@@ -2266,7 +2270,7 @@ function Claims(_ref19) {
         fontSize: 11,
         color: "#6B7280"
       }
-    }, SL[s]));
+    }, label));
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       marginLeft: "auto",
@@ -2298,11 +2302,11 @@ function Claims(_ref19) {
     style: {
       borderBottom: "1px solid rgba(255,255,255,0.07)"
     }
-  }, ["Tanggal", "Driver", "Kendaraan", "Jenis Claim", "Nominal", "Status", "Aksi"].map(function (h) {
+  }, ["Tanggal", "Driver", "Jenis Claim", "Nominal", "Status", "Aksi"].map(function (h) {
     return /*#__PURE__*/React.createElement("th", {
       key: h,
       style: {
-        padding: "12px 14px",
+        padding: "12px 16px",
         textAlign: "left",
         fontSize: 11,
         fontWeight: 600,
@@ -2311,45 +2315,26 @@ function Claims(_ref19) {
       }
     }, h);
   }))), /*#__PURE__*/React.createElement("tbody", null, filtered.map(function (c) {
-    var cVid = String(c.vehicleId || '').trim();
-    var v = vehicles.find(function (v) {
-      return String(v.id).trim() === cVid || v.plate === cVid;
-    });
-    var nxt = NEXT[c.status] || [];
     return /*#__PURE__*/React.createElement("tr", {
       key: c.id,
       className: "trow"
     }, /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "12px 14px",
+        padding: "12px 16px",
         fontSize: 12,
         color: "#9CA3AF",
         whiteSpace: "nowrap"
       }
     }, fmtDate(c.date)), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "12px 14px",
+        padding: "12px 16px",
         fontSize: 13,
         fontWeight: 600,
         color: "#E2E8F0"
       }
     }, c.driver || c.driverName), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "12px 14px"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: "#CBD5E1"
-      }
-    }, (v === null || v === void 0 ? void 0 : v.plate) || "-"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: "#4B5563"
-      }
-    }, v === null || v === void 0 ? void 0 : v.type)), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "12px 14px"
+        padding: "12px 16px"
       }
     }, /*#__PURE__*/React.createElement("span", {
       className: "tag",
@@ -2359,49 +2344,44 @@ function Claims(_ref19) {
       }
     }, c.type)), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "12px 14px"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
+        padding: "12px 16px",
         fontSize: 14,
         fontWeight: 700,
         color: "#F1F5F9",
         whiteSpace: "nowrap"
       }
-    }, "Rp ", fmt(c.total))), /*#__PURE__*/React.createElement("td", {
+    }, "Rp ", fmt(c.total)), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "12px 14px"
+        padding: "12px 16px"
       }
     }, /*#__PURE__*/React.createElement("span", {
       className: "badge",
       style: {
-        background: SC[c.status] + "22",
-        color: SC[c.status]
+        background: (SC2[c.status] || "#6B7280") + "22",
+        color: SC2[c.status] || "#6B7280"
       }
-    }, SL[c.status])), /*#__PURE__*/React.createElement("td", {
+    }, SL2[c.status] || c.status)), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "12px 14px"
+        padding: "12px 16px"
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: "flex",
-        gap: 5,
-        flexWrap: "wrap"
+        gap: 6,
+        alignItems: "center"
       }
-    }, nxt.map(function (ns) {
-      return /*#__PURE__*/React.createElement("button", {
-        key: ns,
-        className: "btn btn-s btn-sm",
-        style: {
-          fontSize: 11,
-          padding: "4px 9px",
-          color: SC[ns]
-        },
-        onClick: function onClick() {
-          return updStatus(c.id, ns);
-        }
-      }, SL[ns]);
-    }), /*#__PURE__*/React.createElement("button", {
+    }, c.status === "submitted" && /*#__PURE__*/React.createElement("button", {
+      className: "btn btn-s btn-sm",
+      style: {
+        fontSize: 11,
+        padding: "4px 10px",
+        color: "#10B981",
+        border: "1px solid rgba(16,185,129,0.3)"
+      },
+      onClick: function onClick() {
+        return markProcessed(c.id);
+      }
+    }, "\u2713 Proses"), /*#__PURE__*/React.createElement("button", {
       className: "btn btn-d",
       style: {
         padding: "5px 8px"
@@ -2414,7 +2394,7 @@ function Claims(_ref19) {
       size: 13
     })))));
   }), filtered.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-    colSpan: 7,
+    colSpan: 6,
     style: {
       padding: "36px",
       textAlign: "center",
@@ -2429,14 +2409,14 @@ function Claims(_ref19) {
   }, /*#__PURE__*/React.createElement("div", {
     className: "modal",
     style: {
-      maxWidth: 540
+      maxWidth: 500
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 20
+      marginBottom: 22
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
     style: {
@@ -2450,7 +2430,7 @@ function Claims(_ref19) {
       color: "#4B5563",
       marginTop: 2
     }
-  }, "1 pengajuan bisa multiple jenis claim")), /*#__PURE__*/React.createElement("button", {
+  }, "Bisa input multiple jenis sekaligus")), /*#__PURE__*/React.createElement("button", {
     className: "btn btn-s btn-sm",
     style: {
       padding: "6px 9px"
@@ -2468,11 +2448,7 @@ function Claims(_ref19) {
       gap: 12,
       marginBottom: 18
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      gridColumn: "1/-1"
-    }
-  }, /*#__PURE__*/React.createElement("label", {
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: {
       fontSize: 11,
       color: "#6B7280",
@@ -2499,7 +2475,7 @@ function Claims(_ref19) {
       display: "block",
       marginBottom: 6
     }
-  }, "DRIVER"), /*#__PURE__*/React.createElement("select", {
+  }, "NAMA DRIVER"), /*#__PURE__*/React.createElement("select", {
     className: "inp",
     value: form.driver,
     onChange: function onChange(e) {
@@ -2516,31 +2492,6 @@ function Claims(_ref19) {
       key: d,
       value: d
     }, d);
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
-    style: {
-      fontSize: 11,
-      color: "#6B7280",
-      fontWeight: 600,
-      display: "block",
-      marginBottom: 6
-    }
-  }, "KENDARAAN"), /*#__PURE__*/React.createElement("select", {
-    className: "inp",
-    value: form.vehicleId,
-    onChange: function onChange(e) {
-      return setForm(function (p) {
-        return _objectSpread(_objectSpread({}, p), {}, {
-          vehicleId: e.target.value
-        });
-      });
-    }
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "Pilih Kendaraan"), (vehicles || []).map(function (v) {
-    return /*#__PURE__*/React.createElement("option", {
-      key: v.id,
-      value: v.id
-    }, v.plate, " \u2014 ", v.type);
   })))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 16
@@ -2567,13 +2518,13 @@ function Claims(_ref19) {
   }, /*#__PURE__*/React.createElement(Icon, {
     d: IC.plus,
     size: 13
-  }), "Tambah Jenis")), /*#__PURE__*/React.createElement("div", {
+  }), "Tambah Baris")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "140px 1fr 32px",
+      gridTemplateColumns: "130px 1fr 28px",
       gap: 8,
-      marginBottom: 6,
-      padding: "0 4px"
+      padding: "0 2px",
+      marginBottom: 6
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2581,19 +2532,19 @@ function Claims(_ref19) {
       color: "#4B5563",
       fontWeight: 600
     }
-  }, "Jenis Claim"), /*#__PURE__*/React.createElement("div", {
+  }, "Jenis"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#4B5563",
       fontWeight: 600
     }
-  }, "Nominal (bisa rumus: 50000+30000)"), /*#__PURE__*/React.createElement("div", null)), /*#__PURE__*/React.createElement("div", {
+  }, "Nominal"), /*#__PURE__*/React.createElement("div", null)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 8
     }
-  }, form.items.map(function (item, idx) {
+  }, form.items.map(function (item) {
     var res = evalExpr(item.expr);
     var ok = res !== null && res > 0;
     var err = item.expr.trim() && !ok;
@@ -2601,7 +2552,7 @@ function Claims(_ref19) {
       key: item.id,
       style: {
         display: "grid",
-        gridTemplateColumns: "140px 1fr 32px",
+        gridTemplateColumns: "130px 1fr 28px",
         gap: 8,
         alignItems: "center"
       }
@@ -2645,26 +2596,26 @@ function Claims(_ref19) {
         fontSize: 12,
         fontWeight: 700,
         color: err ? "#EF4444" : "#00D4FF",
-        whiteSpace: "nowrap",
-        pointerEvents: "none"
+        pointerEvents: "none",
+        whiteSpace: "nowrap"
       }
     }, err ? "invalid" : "= Rp ".concat(fmt(res)))), /*#__PURE__*/React.createElement("button", {
       className: "btn btn-d",
       style: {
-        padding: "8px",
+        padding: "7px",
         justifyContent: "center",
-        opacity: form.items.length === 1 ? 0.3 : 1
+        opacity: form.items.length === 1 ? 0.25 : 1
       },
       onClick: function onClick() {
         return form.items.length > 1 && removeItem(item.id);
       }
     }, /*#__PURE__*/React.createElement(Icon, {
       d: IC.x,
-      size: 13
+      size: 12
     })));
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 16
+      marginBottom: 18
     }
   }, /*#__PURE__*/React.createElement("label", {
     style: {
@@ -2676,7 +2627,7 @@ function Claims(_ref19) {
     }
   }, "CATATAN (opsional)"), /*#__PURE__*/React.createElement("input", {
     className: "inp",
-    placeholder: "Perjalanan dinas, keterangan lain...",
+    placeholder: "Keterangan tambahan...",
     value: form.note,
     onChange: function onChange(e) {
       return setForm(function (p) {
@@ -2687,7 +2638,7 @@ function Claims(_ref19) {
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
-      background: "rgba(0,212,255,0.06)",
+      background: "rgba(0,212,255,0.05)",
       border: "1px solid rgba(0,212,255,0.2)",
       borderRadius: 12,
       padding: "14px 18px",
@@ -2695,30 +2646,19 @@ function Claims(_ref19) {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 8
+      fontSize: 12,
+      color: "#6B7280",
+      fontWeight: 600,
+      marginBottom: 10
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: "#6B7280"
-    }
-  }, "Rincian"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: "#6B7280"
-    }
-  }, "Nominal")), form.items.map(function (item) {
+  }, "RINGKASAN CLAIM"), form.items.map(function (item) {
     var res = evalExpr(item.expr);
     return res > 0 ? /*#__PURE__*/React.createElement("div", {
       key: item.id,
       style: {
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 4
+        marginBottom: 6
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
@@ -2729,7 +2669,7 @@ function Claims(_ref19) {
       style: {
         fontSize: 13,
         color: "#E2E8F0",
-        fontFamily: "monospace"
+        fontWeight: 500
       }
     }, "Rp ", fmt(res))) : null;
   }), /*#__PURE__*/React.createElement("div", {
@@ -2767,7 +2707,7 @@ function Claims(_ref19) {
       alignItems: "center",
       gap: 8
     }
-  }, "\u2709\uFE0F Email notifikasi akan dikirim ke driver setelah submit"), /*#__PURE__*/React.createElement("div", {
+  }, "\u2709\uFE0F Notifikasi akan dikirim ke driver setelah submit"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 9
@@ -2808,14 +2748,14 @@ function Claims(_ref19) {
     d: IC.check,
     size: 15,
     stroke: "#0A0E1A"
-  }), "Submit & Kirim Email"))))));
+  }), "Submit Claim"))))));
 }
-function FuelCtrl(_ref23) {
-  var bbm = _ref23.bbm,
-    setBbm = _ref23.setBbm,
-    claims = _ref23.claims,
-    vehicles = _ref23.vehicles,
-    showToast = _ref23.showToast;
+function FuelCtrl(_ref27) {
+  var bbm = _ref27.bbm,
+    setBbm = _ref27.setBbm,
+    claims = _ref27.claims,
+    vehicles = _ref27.vehicles,
+    showToast = _ref27.showToast;
   var _useState39 = useState(false),
     _useState40 = _slicedToArray(_useState39, 2),
     showAdd = _useState40[0],
@@ -2869,7 +2809,7 @@ function FuelCtrl(_ref23) {
     });
   });
   var addPrice = /*#__PURE__*/function () {
-    var _ref24 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
+    var _ref28 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
       var p, updatedBBM, bbmEntries;
       return _regenerator().w(function (_context6) {
         while (1) switch (_context6.n) {
@@ -2892,10 +2832,10 @@ function FuelCtrl(_ref23) {
             setShowAdd(false);
             setNewPrice("");
             bbmEntries = [];
-            Object.entries(updatedBBM).forEach(function (_ref25) {
-              var _ref26 = _slicedToArray(_ref25, 2),
-                fuelType = _ref26[0],
-                hist = _ref26[1];
+            Object.entries(updatedBBM).forEach(function (_ref29) {
+              var _ref30 = _slicedToArray(_ref29, 2),
+                fuelType = _ref30[0],
+                hist = _ref30[1];
               return hist.forEach(function (h) {
                 return bbmEntries.push({
                   fuelType: fuelType,
@@ -2914,7 +2854,7 @@ function FuelCtrl(_ref23) {
       }, _callee6);
     }));
     return function addPrice() {
-      return _ref24.apply(this, arguments);
+      return _ref28.apply(this, arguments);
     };
   }();
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
@@ -3407,115 +3347,316 @@ function FuelCtrl(_ref23) {
 }
 
 // ── REPORTS ───────────────────────────────────────────────────────────────────
-function Reports(_ref27) {
-  var claims = _ref27.claims,
-    vehicles = _ref27.vehicles;
+function Reports(_ref31) {
+  var claims = _ref31.claims,
+    vehicles = _ref31.vehicles,
+    showToast = _ref31.showToast;
   var _useState47 = useState("monthly"),
     _useState48 = _slicedToArray(_useState47, 2),
     period = _useState48[0],
     setPeriod = _useState48[1];
-  var _useState49 = useState("2025-04-01"),
+  var _useState49 = useState(function () {
+      var d = new Date();
+      d.setDate(1);
+      return d.toISOString().slice(0, 10);
+    }),
     _useState50 = _slicedToArray(_useState49, 2),
     startDate = _useState50[0],
     setStartDate = _useState50[1];
-  var _useState51 = useState("2025-06-30"),
+  var _useState51 = useState(function () {
+      return new Date().toISOString().slice(0, 10);
+    }),
     _useState52 = _slicedToArray(_useState51, 2),
     endDate = _useState52[0],
     setEndDate = _useState52[1];
-  var filtered = claims.filter(function (c) {
-    var d = new Date(c.date);
-    if (period === "weekly") {
-      var n = new Date(),
-        s = new Date(n);
-      s.setDate(n.getDate() - 7);
-      return d >= s && d <= n;
-    }
-    if (period === "monthly") {
-      var _n = new Date();
-      return d.getMonth() === _n.getMonth() && d.getFullYear() === _n.getFullYear();
-    }
-    return d >= new Date(startDate) && d <= new Date(endDate);
-  });
-  var byType = CLAIM_TYPES.map(function (t) {
-    return {
-      type: t,
-      total: filtered.filter(function (c) {
-        return c.type === t;
-      }).reduce(function (s, c) {
-        return s + c.total;
-      }, 0),
-      count: filtered.filter(function (c) {
-        return c.type === t;
-      }).length
-    };
-  }).filter(function (x) {
-    return x.total > 0;
-  });
-  var byVeh = vehicles.map(function (v) {
-    return {
-      plate: v.plate,
-      type: v.type,
-      total: filtered.filter(function (c) {
-        return c.vehicleId === v.id;
-      }).reduce(function (s, c) {
-        return s + c.total;
-      }, 0),
-      count: filtered.filter(function (c) {
-        return c.vehicleId === v.id;
-      }).length
-    };
-  }).filter(function (x) {
-    return x.total > 0;
-  });
-  var byDriver = _toConsumableArray(new Set(claims.map(function (c) {
-    return c.driver;
-  }))).map(function (d) {
-    return {
-      driver: d,
-      total: filtered.filter(function (c) {
-        return c.driver === d;
-      }).reduce(function (s, c) {
-        return s + c.total;
-      }, 0),
-      count: filtered.filter(function (c) {
-        return c.driver === d;
-      }).length
-    };
-  }).filter(function (x) {
-    return x.total > 0;
-  }).sort(function (a, b) {
-    return b.total - a.total;
-  });
-  var grand = filtered.reduce(function (s, c) {
-    return s + (c.total || 0);
-  }, 0);
-  var maxT = Math.max.apply(Math, _toConsumableArray(byType.map(function (x) {
-    return x.total;
-  })).concat([1]));
+  var _useState53 = useState(false),
+    _useState54 = _slicedToArray(_useState53, 2),
+    generated = _useState54[0],
+    setGenerated = _useState54[1];
+  var _useState55 = useState(null),
+    _useState56 = _slicedToArray(_useState55, 2),
+    reportData = _useState56[0],
+    setReportData = _useState56[1];
+  var _useState57 = useState(false),
+    _useState58 = _slicedToArray(_useState57, 2),
+    downloading = _useState58[0],
+    setDownloading = _useState58[1];
   var COLS = ["#00D4FF", "#7B2FBE", "#10B981", "#F59E0B", "#EF4444", "#EC4899"];
+  var getFiltered = function getFiltered() {
+    return claims.filter(function (c) {
+      var d = new Date(c.date);
+      if (period === "weekly") {
+        var n = new Date(),
+          s = new Date(n);
+        s.setDate(n.getDate() - 7);
+        return d >= s && d <= n;
+      }
+      if (period === "monthly") {
+        var _n = new Date();
+        return d.getMonth() === _n.getMonth() && d.getFullYear() === _n.getFullYear();
+      }
+      if (period === "custom") {
+        return d >= new Date(startDate) && d <= new Date(endDate);
+      }
+      return true;
+    });
+  };
+  var buildReport = function buildReport() {
+    var filtered = getFiltered();
+    var byType = CLAIM_TYPES.map(function (t) {
+      return {
+        type: t,
+        total: filtered.filter(function (c) {
+          return c.type === t;
+        }).reduce(function (s, c) {
+          return s + (c.total || 0);
+        }, 0),
+        count: filtered.filter(function (c) {
+          return c.type === t;
+        }).length
+      };
+    }).filter(function (x) {
+      return x.total > 0;
+    }).sort(function (a, b) {
+      return b.total - a.total;
+    });
+    var byDriver = _toConsumableArray(new Set(claims.map(function (c) {
+      return c.driver || c.driverName;
+    }).filter(Boolean))).map(function (d) {
+      return {
+        driver: d,
+        total: filtered.filter(function (c) {
+          return (c.driver || c.driverName) === d;
+        }).reduce(function (s, c) {
+          return s + (c.total || 0);
+        }, 0),
+        count: filtered.filter(function (c) {
+          return (c.driver || c.driverName) === d;
+        }).length,
+        types: _toConsumableArray(new Set(filtered.filter(function (c) {
+          return (c.driver || c.driverName) === d;
+        }).map(function (c) {
+          return c.type;
+        })))
+      };
+    }).filter(function (x) {
+      return x.total > 0;
+    }).sort(function (a, b) {
+      return b.total - a.total;
+    });
+    var byStatus = ["submitted", "processed", "draft"].map(function (s) {
+      return {
+        status: s,
+        count: filtered.filter(function (c) {
+          return c.status === s;
+        }).length,
+        total: filtered.filter(function (c) {
+          return c.status === s;
+        }).reduce(function (s, c) {
+          return s + (c.total || 0);
+        }, 0)
+      };
+    });
+    var grand = filtered.reduce(function (s, c) {
+      return s + (c.total || 0);
+    }, 0);
+    var maxType = Math.max.apply(Math, _toConsumableArray(byType.map(function (x) {
+      return x.total;
+    })).concat([1]));
+    var maxDriver = Math.max.apply(Math, _toConsumableArray(byDriver.map(function (x) {
+      return x.total;
+    })).concat([1]));
+    return {
+      filtered: filtered,
+      byType: byType,
+      byDriver: byDriver,
+      byStatus: byStatus,
+      grand: grand,
+      maxType: maxType,
+      maxDriver: maxDriver
+    };
+  };
+  var generate = function generate() {
+    var data = buildReport();
+    setReportData(data);
+    setGenerated(true);
+  };
+  var refresh = function refresh() {
+    var data = buildReport();
+    setReportData(data);
+  };
+  var periodLabel = function periodLabel() {
+    if (period === "weekly") return "Minggu Ini";
+    if (period === "monthly") return new Date().toLocaleDateString("id-ID", {
+      month: "long",
+      year: "numeric"
+    });
+    return "".concat(fmtDate(startDate), " \u2014 ").concat(fmtDate(endDate));
+  };
+
+  // ── DOWNLOAD CSV ───────────────────────────────────────────
+  var downloadCSV = function downloadCSV() {
+    if (!reportData) return;
+    var filtered = reportData.filtered;
+    var headers = ["Tanggal", "Driver", "Jenis Claim", "Nominal", "Status", "Catatan", "Submitted At"];
+    var rows = filtered.map(function (c) {
+      return [fmtDate(c.date), c.driver || c.driverName || "", c.type, c.total || 0, c.status, (c.note || "").replace(/,/g, ""), c.submittedAt ? fmtDate(c.submittedAt) : ""];
+    });
+    var csv = [headers].concat(_toConsumableArray(rows)).map(function (r) {
+      return r.join(",");
+    }).join("\n");
+    var blob = new Blob(["\uFEFF" + csv], {
+      type: "text/csv;charset=utf-8;"
+    });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "FleetOS_Report_".concat(period, "_").concat(new Date().toISOString().slice(0, 10), ".csv");
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ── DOWNLOAD PDF (proper, no print dialog) ─────────────────
+  var downloadPDF = /*#__PURE__*/function () {
+    var _ref32 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7() {
+      var filtered, byType, byDriver, byStatus, grand, now, title, itemRows, typeRows, driverRows, htmlContent, win, _t;
+      return _regenerator().w(function (_context7) {
+        while (1) switch (_context7.p = _context7.n) {
+          case 0:
+            if (!(!reportData || downloading)) {
+              _context7.n = 1;
+              break;
+            }
+            return _context7.a(2);
+          case 1:
+            setDownloading(true);
+            _context7.p = 2;
+            filtered = reportData.filtered, byType = reportData.byType, byDriver = reportData.byDriver, byStatus = reportData.byStatus, grand = reportData.grand;
+            now = new Date().toLocaleDateString("id-ID", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit"
+            });
+            title = "Laporan Claim FleetOS \u2014 ".concat(periodLabel()); // Build clean professional HTML for PDF
+            itemRows = filtered.sort(function (a, b) {
+              return new Date(b.date) - new Date(a.date);
+            }).map(function (c) {
+              return "\n        <tr>\n          <td>".concat(fmtDate(c.date), "</td>\n          <td>").concat(c.driver || c.driverName || "", "</td>\n          <td><span class=\"badge\">").concat(c.type, "</span></td>\n          <td class=\"num\">Rp ").concat(fmt(c.total || 0), "</td>\n          <td><span class=\"status st-").concat(c.status, "\">").concat(c.status === "processed" ? "Processed" : "Submitted", "</span></td>\n        </tr>");
+            }).join("");
+            typeRows = byType.map(function (x) {
+              return "\n        <tr>\n          <td>".concat(x.type, "</td>\n          <td class=\"num\">").concat(x.count, "x</td>\n          <td class=\"num\">Rp ").concat(fmt(x.total), "</td>\n          <td class=\"num\">").concat(grand > 0 ? (x.total / grand * 100).toFixed(1) : 0, "%</td>\n        </tr>");
+            }).join("");
+            driverRows = byDriver.map(function (x) {
+              return "\n        <tr>\n          <td>".concat(x.driver, "</td>\n          <td class=\"num\">").concat(x.count, "x</td>\n          <td class=\"num\">Rp ").concat(fmt(x.total), "</td>\n          <td>").concat(x.types.join(", "), "</td>\n        </tr>");
+            }).join("");
+            htmlContent = "<!DOCTYPE html>\n<html lang=\"id\">\n<head>\n<meta charset=\"UTF-8\"/>\n<style>\n  @page { size: A4; margin: 20mm 18mm; }\n  * { box-sizing: border-box; margin: 0; padding: 0; }\n  body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a1a2e; background: #fff; }\n  /* Header */\n  .header { background: linear-gradient(135deg,#0A0E1A,#1a2035); color: #fff; padding: 20px 24px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }\n  .header h1 { font-size: 22px; color: #00D4FF; margin: 0; letter-spacing: 1px; }\n  .header .sub { font-size: 12px; color: #9CA3AF; margin-top: 3px; }\n  .header .meta { text-align: right; font-size: 11px; color: #9CA3AF; }\n  /* Summary cards */\n  .cards { display: flex; gap: 12px; margin-bottom: 20px; }\n  .card { flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; }\n  .card .val { font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 2px; }\n  .card .lbl { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }\n  .card.accent { background: #0A0E1A; border-color: #00D4FF; }\n  .card.accent .val { color: #00D4FF; }\n  .card.accent .lbl { color: #9CA3AF; }\n  /* Section */\n  .section { margin-bottom: 22px; }\n  .section-title { font-size: 12px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 2px solid #00D4FF; padding-bottom: 6px; margin-bottom: 12px; }\n  /* Table */\n  table { width: 100%; border-collapse: collapse; font-size: 10.5px; }\n  th { background: #f1f5f9; color: #374151; font-weight: 700; padding: 8px 10px; text-align: left; border-bottom: 2px solid #e2e8f0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }\n  td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }\n  tr:last-child td { border-bottom: none; }\n  tr:hover td { background: #f8fafc; }\n  .num { text-align: right; font-weight: 600; }\n  .badge { background: #e0f2fe; color: #0369a1; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; }\n  .status { padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; }\n  .st-processed { background: #dcfce7; color: #166534; }\n  .st-submitted  { background: #dbeafe; color: #1e40af; }\n  .st-draft      { background: #f1f5f9; color: #475569; }\n  /* Summary row */\n  .total-row td { background: #0A0E1A; color: #fff; font-weight: 700; border-radius: 4px; }\n  .total-row .num { color: #00D4FF; font-size: 13px; }\n  /* Two col */\n  .two-col { display: flex; gap: 16px; margin-bottom: 20px; }\n  .two-col .col { flex: 1; }\n  /* Footer */\n  .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 9px; color: #94a3b8; }\n  .progress-bar { background: #e2e8f0; border-radius: 3px; height: 5px; margin-top: 3px; }\n  .progress-fill { background: #00D4FF; border-radius: 3px; height: 5px; }\n</style>\n</head>\n<body>\n  <!-- Header -->\n  <div class=\"header\">\n    <div>\n      <h1>FleetOS</h1>\n      <div class=\"sub\">Laporan Claim Kendaraan</div>\n    </div>\n    <div class=\"meta\">\n      <div style=\"font-size:14px;color:#fff;font-weight:600\">".concat(title, "</div>\n      <div>Dibuat: ").concat(now, "</div>\n      <div>Total Transaksi: ").concat(filtered.length, " claim</div>\n    </div>\n  </div>\n\n  <!-- Summary Cards -->\n  <div class=\"cards\">\n    <div class=\"card accent\">\n      <div class=\"val\">Rp ").concat(fmt(grand), "</div>\n      <div class=\"lbl\">Total Pengeluaran</div>\n    </div>\n    <div class=\"card\">\n      <div class=\"val\">").concat(filtered.length, "</div>\n      <div class=\"lbl\">Jumlah Claim</div>\n    </div>\n    <div class=\"card\">\n      <div class=\"val\">").concat(filtered.length > 0 ? "Rp " + fmt(Math.round(grand / filtered.length)) : "-", "</div>\n      <div class=\"lbl\">Rata-rata per Claim</div>\n    </div>\n    <div class=\"card\">\n      <div class=\"val\">").concat(byDriver.length, "</div>\n      <div class=\"lbl\">Driver</div>\n    </div>\n    <div class=\"card\">\n      <div class=\"val\">").concat(filtered.length > 0 ? "Rp " + fmt(Math.max.apply(Math, _toConsumableArray(filtered.map(function (c) {
+              return c.total || 0;
+            })))) : "-", "</div>\n      <div class=\"lbl\">Claim Terbesar</div>\n    </div>\n  </div>\n\n  <!-- Summary by Type & Driver -->\n  <div class=\"two-col\">\n    <div class=\"col\">\n      <div class=\"section-title\">Per Jenis Claim</div>\n      <table>\n        <thead><tr><th>Jenis</th><th>Transaksi</th><th>Total</th><th>%</th></tr></thead>\n        <tbody>").concat(typeRows, "</tbody>\n        <tfoot class=\"total-row\"><tr>\n          <td><strong>TOTAL</strong></td>\n          <td class=\"num\">").concat(filtered.length, "x</td>\n          <td class=\"num\">Rp ").concat(fmt(grand), "</td>\n          <td class=\"num\">100%</td>\n        </tr></tfoot>\n      </table>\n    </div>\n    <div class=\"col\">\n      <div class=\"section-title\">Per Driver</div>\n      <table>\n        <thead><tr><th>Driver</th><th>Claim</th><th>Total</th><th>Jenis</th></tr></thead>\n        <tbody>").concat(driverRows, "</tbody>\n      </table>\n    </div>\n  </div>\n\n  <!-- Detail Transactions -->\n  <div class=\"section\">\n    <div class=\"section-title\">Detail Transaksi</div>\n    <table>\n      <thead><tr><th>Tanggal</th><th>Driver</th><th>Jenis Claim</th><th>Nominal</th><th>Status</th></tr></thead>\n      <tbody>").concat(itemRows, "</tbody>\n      <tfoot class=\"total-row\"><tr>\n        <td colspan=\"3\"><strong>GRAND TOTAL</strong></td>\n        <td class=\"num\">Rp ").concat(fmt(grand), "</td>\n        <td></td>\n      </tr></tfoot>\n    </table>\n  </div>\n\n  <!-- Footer -->\n  <div class=\"footer\">\n    <div>FleetOS Vehicle Management System \u2014 Laporan ini dibuat secara otomatis</div>\n    <div>\xA9 ").concat(new Date().getFullYear(), " FleetOS</div>\n  </div>\n</body>\n</html>"); // Open in new window and trigger print as PDF
+            win = window.open("", "_blank", "width=900,height=700");
+            if (win) {
+              _context7.n = 3;
+              break;
+            }
+            showToast("Izinkan popup di browser untuk download PDF", "error");
+            setDownloading(false);
+            return _context7.a(2);
+          case 3:
+            win.document.write(htmlContent);
+            win.document.close();
+            win.focus();
+            // Wait for styles to load then print
+            setTimeout(function () {
+              win.print();
+              // win.close(); // optionally close after print
+            }, 600);
+            _context7.n = 5;
+            break;
+          case 4:
+            _context7.p = 4;
+            _t = _context7.v;
+            console.error("PDF error:", _t);
+          case 5:
+            setDownloading(false);
+          case 6:
+            return _context7.a(2);
+        }
+      }, _callee7, null, [[2, 4]]);
+    }));
+    return function downloadPDF() {
+      return _ref32.apply(this, arguments);
+    };
+  }();
+  var _ref33 = reportData || {},
+    f2 = _ref33.filtered,
+    bt2 = _ref33.byType,
+    bd2 = _ref33.byDriver,
+    bs2 = _ref33.byStatus,
+    g2 = _ref33.grand,
+    mt2 = _ref33.maxType,
+    md2 = _ref33.maxDriver;
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "glass",
+    style: {
+      padding: "16px 20px",
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 10,
-      marginBottom: 22,
+      gap: 12,
       flexWrap: "wrap",
-      alignItems: "center"
+      alignItems: "flex-end"
     }
-  }, [["weekly", "Minggu Ini"], ["monthly", "Bulan Ini"], ["custom", "Custom"]].map(function (_ref28) {
-    var _ref29 = _slicedToArray(_ref28, 2),
-      v = _ref29[0],
-      l = _ref29[1];
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: "0 0 auto"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      color: "#6B7280",
+      fontWeight: 600,
+      display: "block",
+      marginBottom: 6
+    }
+  }, "PERIODE"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, [["weekly", "Minggu Ini"], ["monthly", "Bulan Ini"], ["all", "Semua"], ["custom", "Custom"]].map(function (_ref34) {
+    var _ref35 = _slicedToArray(_ref34, 2),
+      v = _ref35[0],
+      l = _ref35[1];
     return /*#__PURE__*/React.createElement("button", {
       key: v,
-      className: "btn ".concat(period === v ? "btn-p" : "btn-s"),
+      className: "btn ".concat(period === v ? "btn-p" : "btn-s", " btn-sm"),
       style: {
-        fontSize: 13
+        fontSize: 12
       },
       onClick: function onClick() {
-        return setPeriod(v);
+        setPeriod(v);
+        setGenerated(false);
+        setReportData(null);
       }
     }, l);
-  }), period === "custom" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
+  }))), period === "custom" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "flex-end"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      color: "#6B7280",
+      fontWeight: 500,
+      display: "block",
+      marginBottom: 6
+    }
+  }, "Dari"), /*#__PURE__*/React.createElement("input", {
     type: "date",
     className: "inp",
     style: {
@@ -3523,13 +3664,23 @@ function Reports(_ref27) {
     },
     value: startDate,
     onChange: function onChange(e) {
-      return setStartDate(e.target.value);
+      setStartDate(e.target.value);
+      setGenerated(false);
     }
-  }), /*#__PURE__*/React.createElement("span", {
+  })), /*#__PURE__*/React.createElement("span", {
     style: {
-      color: "#4B5563"
+      color: "#4B5563",
+      paddingBottom: 10
     }
-  }, "-"), /*#__PURE__*/React.createElement("input", {
+  }, "\u2014"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      color: "#6B7280",
+      fontWeight: 500,
+      display: "block",
+      marginBottom: 6
+    }
+  }, "Sampai"), /*#__PURE__*/React.createElement("input", {
     type: "date",
     className: "inp",
     style: {
@@ -3537,33 +3688,140 @@ function Reports(_ref27) {
     },
     value: endDate,
     onChange: function onChange(e) {
-      return setEndDate(e.target.value);
+      setEndDate(e.target.value);
+      setGenerated(false);
     }
   }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginLeft: "auto",
+      display: "flex",
+      gap: 8,
+      alignItems: "flex-end"
+    }
+  }, generated && /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-s btn-sm",
+    onClick: refresh,
+    title: "Refresh data"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    d: IC.refresh,
+    size: 14
+  }), "Refresh"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-p",
+    onClick: generate,
+    style: {
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    d: IC.report,
+    size: 15,
+    stroke: "#0A0E1A"
+  }), "Generate Report")))), !generated && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "60px 20px",
+      color: "#4B5563"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 64,
+      height: 64,
+      borderRadius: 16,
+      background: "rgba(0,212,255,0.1)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      margin: "0 auto 16px"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    d: IC.report,
+    size: 32,
+    stroke: "#00D4FF"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 16,
+      fontWeight: 600,
+      color: "#9CA3AF",
+      marginBottom: 8
+    }
+  }, "Pilih periode lalu klik Generate Report"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "#4B5563"
+    }
+  }, "Report akan menampilkan summary, grafik, dan detail transaksi")), generated && reportData && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 20,
+      padding: "12px 16px",
+      background: "rgba(0,212,255,0.05)",
+      border: "1px solid rgba(0,212,255,0.15)",
+      borderRadius: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: "#E2E8F0"
+    }
+  }, "\uD83D\uDCCA ", periodLabel()), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#6B7280",
+      marginTop: 2
+    }
+  }, f2.length, " transaksi \xB7 Total Rp ", fmt(g2))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-s btn-sm",
+    onClick: downloadCSV,
+    style: {
+      color: "#10B981",
+      border: "1px solid rgba(16,185,129,0.3)"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    d: IC.download,
+    size: 14
+  }), "Download CSV"), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-s btn-sm",
+    onClick: downloadPDF,
+    style: {
+      color: "#00D4FF",
+      border: "1px solid rgba(0,212,255,0.3)",
+      opacity: downloading ? 0.6 : 1
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    d: IC.download,
+    size: 14
+  }), downloading ? "Menyiapkan..." : "Download PDF"))), /*#__PURE__*/React.createElement("div", {
     className: "g4",
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(4,1fr)",
-      gap: 13,
+      gap: 14,
       marginBottom: 22
     }
   }, [{
     l: "Total Pengeluaran",
-    v: "Rp ".concat(fmt(grand)),
+    v: "Rp ".concat(fmt(g2)),
     col: "#00D4FF"
   }, {
     l: "Jumlah Transaksi",
-    v: filtered.length,
+    v: f2.length,
     col: "#7B2FBE"
   }, {
     l: "Rata-rata/Claim",
-    v: filtered.length ? "Rp ".concat(fmt(Math.round(grand / filtered.length))) : "nol",
+    v: f2.length ? "Rp ".concat(fmt(Math.round(g2 / f2.length))) : "—",
     col: "#10B981"
   }, {
     l: "Claim Terbesar",
-    v: filtered.length ? "Rp ".concat(fmt(Math.max.apply(Math, _toConsumableArray(filtered.map(function (c) {
-      return c.total;
-    }))))) : "nol",
+    v: f2.length ? "Rp ".concat(fmt(Math.max.apply(Math, _toConsumableArray(f2.map(function (c) {
+      return c.total || 0;
+    }))))) : "—",
     col: "#F59E0B"
   }].map(function (s, i) {
     return /*#__PURE__*/React.createElement("div", {
@@ -3575,7 +3833,7 @@ function Reports(_ref27) {
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         fontFamily: "'Space Grotesk',sans-serif",
-        fontWeight: 700,
+        fontWeight: 800,
         fontSize: 17,
         color: s.col,
         marginBottom: 4
@@ -3587,12 +3845,11 @@ function Reports(_ref27) {
       }
     }, s.l));
   })), /*#__PURE__*/React.createElement("div", {
-    className: "g2",
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
       gap: 18,
-      marginBottom: 18
+      marginBottom: 20
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "glass",
@@ -3604,22 +3861,20 @@ function Reports(_ref27) {
       fontFamily: "'Space Grotesk',sans-serif",
       fontWeight: 600,
       fontSize: 14,
-      marginBottom: 18
+      marginBottom: 16
     }
-  }, "Per Kategori"), byType.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, "Per Jenis Claim"), bt2.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       color: "#4B5563",
-      fontSize: 13,
       textAlign: "center",
-      padding: "18px 0"
+      padding: "20px 0",
+      fontSize: 13
     }
-  }, "Tidak ada data") : byType.sort(function (a, b) {
-    return b.total - a.total;
-  }).map(function (x, i) {
+  }, "Tidak ada data") : bt2.map(function (x, i) {
     return /*#__PURE__*/React.createElement("div", {
       key: x.type,
       style: {
-        marginBottom: 13
+        marginBottom: 14
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -3633,18 +3888,29 @@ function Reports(_ref27) {
         color: "#CBD5E1",
         fontWeight: 500
       }
-    }, x.type), /*#__PURE__*/React.createElement("span", {
+    }, x.type), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 10,
+        alignItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "#6B7280"
+      }
+    }, x.count, "x"), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 12,
         fontWeight: 700,
         color: COLS[i % COLS.length]
       }
-    }, "Rp ", fmt(x.total))), /*#__PURE__*/React.createElement("div", {
+    }, "Rp ", fmt(x.total)))), /*#__PURE__*/React.createElement("div", {
       className: "prog"
     }, /*#__PURE__*/React.createElement("div", {
       className: "prog-f",
       style: {
-        width: "".concat((x.total / maxT * 100).toFixed(0), "%"),
+        width: "".concat((x.total / mt2 * 100).toFixed(0), "%"),
         background: COLS[i % COLS.length]
       }
     })), /*#__PURE__*/React.createElement("div", {
@@ -3653,7 +3919,7 @@ function Reports(_ref27) {
         color: "#4B5563",
         marginTop: 3
       }
-    }, x.count, " transaksi"));
+    }, g2 > 0 ? (x.total / g2 * 100).toFixed(1) : 0, "% dari total"));
   })), /*#__PURE__*/React.createElement("div", {
     className: "glass",
     style: {
@@ -3664,22 +3930,22 @@ function Reports(_ref27) {
       fontFamily: "'Space Grotesk',sans-serif",
       fontWeight: 600,
       fontSize: 14,
-      marginBottom: 18
+      marginBottom: 16
     }
-  }, "Per Driver"), byDriver.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, "Per Driver"), bd2.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       color: "#4B5563",
-      fontSize: 13,
       textAlign: "center",
-      padding: "18px 0"
+      padding: "20px 0",
+      fontSize: 13
     }
-  }, "Tidak ada data") : byDriver.map(function (x, i) {
+  }, "Tidak ada data") : bd2.map(function (x, i) {
     return /*#__PURE__*/React.createElement("div", {
       key: x.driver,
       style: {
         display: "flex",
         alignItems: "center",
-        gap: 11,
+        gap: 10,
         padding: "10px 0",
         borderBottom: "1px solid rgba(255,255,255,0.05)"
       }
@@ -3688,7 +3954,7 @@ function Reports(_ref27) {
         width: 34,
         height: 34,
         borderRadius: 9,
-        background: COLS[i % COLS.length] + "18",
+        background: COLS[i % COLS.length] + "20",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -3699,7 +3965,7 @@ function Reports(_ref27) {
       }
     }, x.driver.split(" ").map(function (n) {
       return n[0];
-    }).join("").slice(0, 2)), /*#__PURE__*/React.createElement("div", {
+    }).join("").slice(0, 2).toUpperCase()), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1
       }
@@ -3711,22 +3977,34 @@ function Reports(_ref27) {
       }
     }, x.driver), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 11,
+        fontSize: 10,
         color: "#4B5563"
       }
-    }, x.count, " claim")), /*#__PURE__*/React.createElement("div", {
+    }, x.count, " claim \xB7 ", x.types.slice(0, 3).join(", ")), /*#__PURE__*/React.createElement("div", {
+      className: "prog",
+      style: {
+        marginTop: 4
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "prog-f",
+      style: {
+        width: "".concat((x.total / md2 * 100).toFixed(0), "%"),
+        background: COLS[i % COLS.length]
+      }
+    }))), /*#__PURE__*/React.createElement("div", {
       style: {
         fontFamily: "'Space Grotesk',sans-serif",
         fontWeight: 700,
         fontSize: 13,
-        color: COLS[i % COLS.length]
+        color: COLS[i % COLS.length],
+        flexShrink: 0
       }
     }, "Rp ", fmt(x.total)));
   }))), /*#__PURE__*/React.createElement("div", {
     className: "glass",
     style: {
       padding: 20,
-      marginBottom: 18
+      marginBottom: 20
     }
   }, /*#__PURE__*/React.createElement("h3", {
     style: {
@@ -3735,44 +4013,45 @@ function Reports(_ref27) {
       fontSize: 14,
       marginBottom: 16
     }
-  }, "Per Kendaraan"), /*#__PURE__*/React.createElement("div", {
+  }, "Status Claim"), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))",
-      gap: 12
+      display: "flex",
+      gap: 14,
+      flexWrap: "wrap"
     }
-  }, byVeh.sort(function (a, b) {
-    return b.total - a.total;
-  }).map(function (x, i) {
+  }, bs2.map(function (s) {
+    var col = s.status === "processed" ? "#10B981" : s.status === "submitted" ? "#3B82F6" : "#6B7280";
+    var lbl = s.status === "processed" ? "Processed" : s.status === "submitted" ? "Submitted" : "Draft";
     return /*#__PURE__*/React.createElement("div", {
-      key: x.plate,
+      key: s.status,
       style: {
-        background: COLS[i % COLS.length] + "0D",
-        border: "1px solid ".concat(COLS[i % COLS.length], "25"),
+        background: col + "12",
+        border: "1px solid ".concat(col, "30"),
         borderRadius: 12,
-        padding: 14
+        padding: "14px 20px",
+        flex: 1,
+        minWidth: 140
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 13,
-        fontWeight: 700,
-        color: "#F1F5F9",
-        marginBottom: 2
-      }
-    }, x.plate), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: "#4B5563",
-        marginBottom: 10
-      }
-    }, x.type, " - ", x.count, " claim"), /*#__PURE__*/React.createElement("div", {
-      style: {
         fontFamily: "'Space Grotesk',sans-serif",
         fontWeight: 800,
-        fontSize: 18,
-        color: COLS[i % COLS.length]
+        fontSize: 22,
+        color: col
       }
-    }, "Rp ", fmt(x.total)));
+    }, s.count), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        fontWeight: 600,
+        color: "#CBD5E1",
+        margin: "3px 0"
+      }
+    }, lbl), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "#4B5563"
+      }
+    }, "Rp ", fmt(s.total)));
   }))), /*#__PURE__*/React.createElement("div", {
     className: "glass",
     style: {
@@ -3780,8 +4059,11 @@ function Reports(_ref27) {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: "14px 18px",
-      borderBottom: "1px solid rgba(255,255,255,0.07)"
+      padding: "14px 20px",
+      borderBottom: "1px solid rgba(255,255,255,0.07)",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
     }
   }, /*#__PURE__*/React.createElement("h3", {
     style: {
@@ -3789,7 +4071,17 @@ function Reports(_ref27) {
       fontWeight: 600,
       fontSize: 14
     }
-  }, "Detail Transaksi (", filtered.length, ")")), /*#__PURE__*/React.createElement("div", {
+  }, "Detail Transaksi (", f2.length, ")"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "#4B5563"
+    }
+  }, "Total: ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#00D4FF",
+      fontWeight: 700
+    }
+  }, "Rp ", fmt(g2)))), /*#__PURE__*/React.createElement("div", {
     style: {
       overflowX: "auto"
     }
@@ -3802,48 +4094,41 @@ function Reports(_ref27) {
     style: {
       borderBottom: "1px solid rgba(255,255,255,0.07)"
     }
-  }, ["Tanggal", "Driver", "Kendaraan", "Tipe", "Nominal", "Status"].map(function (h) {
+  }, ["Tanggal", "Driver", "Jenis", "Nominal", "Status"].map(function (h) {
     return /*#__PURE__*/React.createElement("th", {
       key: h,
       style: {
-        padding: "11px 14px",
+        padding: "11px 16px",
         textAlign: "left",
         fontSize: 11,
         fontWeight: 600,
         color: "#4B5563"
       }
     }, h);
-  }))), /*#__PURE__*/React.createElement("tbody", null, filtered.sort(function (a, b) {
+  }))), /*#__PURE__*/React.createElement("tbody", null, f2.sort(function (a, b) {
     return new Date(b.date) - new Date(a.date);
   }).map(function (c) {
-    var v = vehicles.find(function (v) {
-      return String(v.id) === String(c.vehicleId || '');
-    });
+    var col = c.status === "processed" ? "#10B981" : c.status === "submitted" ? "#3B82F6" : "#6B7280";
+    var lbl = c.status === "processed" ? "Processed" : c.status === "submitted" ? "Submitted" : "Draft";
     return /*#__PURE__*/React.createElement("tr", {
       key: c.id,
       className: "trow"
     }, /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "11px 14px",
+        padding: "11px 16px",
         fontSize: 12,
         color: "#9CA3AF"
       }
     }, fmtDate(c.date)), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "11px 14px",
+        padding: "11px 16px",
         fontSize: 12,
         fontWeight: 500,
         color: "#E2E8F0"
       }
-    }, c.driver), /*#__PURE__*/React.createElement("td", {
+    }, c.driver || c.driverName), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "11px 14px",
-        fontSize: 12,
-        color: "#CBD5E1"
-      }
-    }, v === null || v === void 0 ? void 0 : v.plate), /*#__PURE__*/React.createElement("td", {
-      style: {
-        padding: "11px 14px"
+        padding: "11px 16px"
       }
     }, /*#__PURE__*/React.createElement("span", {
       className: "tag",
@@ -3854,50 +4139,70 @@ function Reports(_ref27) {
       }
     }, c.type)), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "11px 14px",
+        padding: "11px 16px",
         fontSize: 13,
         fontWeight: 700,
         color: "#F1F5F9"
       }
-    }, "Rp ", fmt(c.total)), /*#__PURE__*/React.createElement("td", {
+    }, "Rp ", fmt(c.total || 0)), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "11px 14px"
+        padding: "11px 16px"
       }
     }, /*#__PURE__*/React.createElement("span", {
       className: "badge",
       style: {
-        background: SC[c.status] + "22",
-        color: SC[c.status]
+        background: col + "22",
+        color: col,
+        fontSize: 11
       }
-    }, SL[c.status])));
-  }))))));
+    }, lbl)));
+  })), /*#__PURE__*/React.createElement("tfoot", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderTop: "2px solid rgba(0,212,255,0.2)",
+      background: "rgba(0,212,255,0.04)"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    colSpan: 3,
+    style: {
+      padding: "12px 16px",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#CBD5E1"
+    }
+  }, "GRAND TOTAL"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px 16px",
+      fontFamily: "'Space Grotesk',sans-serif",
+      fontWeight: 800,
+      fontSize: 16,
+      color: "#00D4FF"
+    }
+  }, "Rp ", fmt(g2)), /*#__PURE__*/React.createElement("td", null))))))));
 }
-
-// ── DOCUMENTS ─────────────────────────────────────────────────────────────────
-function Documents(_ref30) {
-  var vehicles = _ref30.vehicles,
-    setVehicles = _ref30.setVehicles,
-    showToast = _ref30.showToast;
-  var _useState53 = useState(false),
-    _useState54 = _slicedToArray(_useState53, 2),
-    show = _useState54[0],
-    setShow = _useState54[1];
-  var _useState55 = useState(null),
-    _useState56 = _slicedToArray(_useState55, 2),
-    editV = _useState56[0],
-    setEditV = _useState56[1];
-  var _useState57 = useState({
+function Documents(_ref36) {
+  var vehicles = _ref36.vehicles,
+    setVehicles = _ref36.setVehicles,
+    showToast = _ref36.showToast;
+  var _useState59 = useState(false),
+    _useState60 = _slicedToArray(_useState59, 2),
+    show = _useState60[0],
+    setShow = _useState60[1];
+  var _useState61 = useState(null),
+    _useState62 = _slicedToArray(_useState61, 2),
+    editV = _useState62[0],
+    setEditV = _useState62[1];
+  var _useState63 = useState({
       kir: "",
       service: "",
       stnk: ""
     }),
-    _useState58 = _slicedToArray(_useState57, 2),
-    form = _useState58[0],
-    setForm = _useState58[1];
-  var _useState59 = useState({}),
-    _useState60 = _slicedToArray(_useState59, 2),
-    expanded = _useState60[0],
-    setExpanded = _useState60[1];
+    _useState64 = _slicedToArray(_useState63, 2),
+    form = _useState64[0],
+    setForm = _useState64[1];
+  var _useState65 = useState({}),
+    _useState66 = _slicedToArray(_useState65, 2),
+    expanded = _useState66[0],
+    setExpanded = _useState66[1];
   var CAT_COL = {
     KIR: "#7B2FBE",
     Service: "#F59E0B",
@@ -3947,10 +4252,10 @@ function Documents(_ref30) {
     setShow(true);
   };
   var save = /*#__PURE__*/function () {
-    var _ref31 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7() {
+    var _ref37 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8() {
       var updated;
-      return _regenerator().w(function (_context7) {
-        while (1) switch (_context7.n) {
+      return _regenerator().w(function (_context8) {
+        while (1) switch (_context8.n) {
           case 0:
             updated = vehicles.map(function (v) {
               return v.id === editV.id ? _objectSpread(_objectSpread({}, v), form) : v;
@@ -3958,17 +4263,17 @@ function Documents(_ref30) {
             setVehicles(updated);
             showToast("Jadwal diperbarui!");
             setShow(false);
-            _context7.n = 1;
+            _context8.n = 1;
             return syncToGAS("saveVehicles", {
               vehicles: updated
             });
           case 1:
-            return _context7.a(2);
+            return _context8.a(2);
         }
-      }, _callee7);
+      }, _callee8);
     }));
     return function save() {
-      return _ref31.apply(this, arguments);
+      return _ref37.apply(this, arguments);
     };
   }();
   var tog = function tog(k) {
@@ -3983,10 +4288,10 @@ function Documents(_ref30) {
       marginBottom: 18,
       flexWrap: "wrap"
     }
-  }, [["Merah", "7 hari (urgent)"], ["Kuning", "8-30 hari"], ["Hijau", "lebih 30 hari"]].map(function (_ref32) {
-    var _ref33 = _slicedToArray(_ref32, 2),
-      col = _ref33[0],
-      l = _ref33[1];
+  }, [["Merah", "7 hari (urgent)"], ["Kuning", "8-30 hari"], ["Hijau", "lebih 30 hari"]].map(function (_ref38) {
+    var _ref39 = _slicedToArray(_ref38, 2),
+      col = _ref39[0],
+      l = _ref39[1];
     return /*#__PURE__*/React.createElement("span", {
       key: l,
       style: {
@@ -4212,12 +4517,12 @@ function Documents(_ref30) {
       flexDirection: "column",
       gap: 13
     }
-  }, [["Jadwal KIR", "kir", "#7B2FBE", KIR_DOCS], ["Jadwal Service", "service", "#F59E0B", SVC_DOCS], ["Jadwal STNK", "stnk", "#10B981", STNK_DOCS]].map(function (_ref34) {
-    var _ref35 = _slicedToArray(_ref34, 4),
-      l = _ref35[0],
-      k = _ref35[1],
-      col = _ref35[2],
-      reqs = _ref35[3];
+  }, [["Jadwal KIR", "kir", "#7B2FBE", KIR_DOCS], ["Jadwal Service", "service", "#F59E0B", SVC_DOCS], ["Jadwal STNK", "stnk", "#10B981", STNK_DOCS]].map(function (_ref40) {
+    var _ref41 = _slicedToArray(_ref40, 4),
+      l = _ref41[0],
+      k = _ref41[1],
+      col = _ref41[2],
+      reqs = _ref41[3];
     return /*#__PURE__*/React.createElement("div", {
       key: k,
       style: {
@@ -4278,10 +4583,10 @@ function Documents(_ref30) {
 }
 
 // ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
-function Notifs(_ref36) {
-  var notifs = _ref36.notifs,
-    setNotifs = _ref36.setNotifs,
-    markAll = _ref36.markAll;
+function Notifs(_ref42) {
+  var notifs = _ref42.notifs,
+    setNotifs = _ref42.setNotifs,
+    markAll = _ref42.markAll;
   var markOne = function markOne(id) {
     return setNotifs(function (p) {
       return p.map(function (n) {
@@ -4533,31 +4838,31 @@ function Notifs(_ref36) {
 }
 
 // ── DRIVER BUDGET ─────────────────────────────────────────────────────────────
-function DriverBudget(_ref37) {
-  var tiers = _ref37.tiers,
-    setTiers = _ref37.setTiers,
-    showToast = _ref37.showToast;
-  var _useState61 = useState(10),
-    _useState62 = _slicedToArray(_useState61, 2),
-    simPct = _useState62[0],
-    setSimPct = _useState62[1];
-  var _useState63 = useState(false),
-    _useState64 = _slicedToArray(_useState63, 2),
-    showAdd = _useState64[0],
-    setShowAdd = _useState64[1];
-  var _useState65 = useState(null),
-    _useState66 = _slicedToArray(_useState65, 2),
-    editTier = _useState66[0],
-    setEditTier = _useState66[1];
-  var _useState67 = useState({
+function DriverBudget(_ref43) {
+  var tiers = _ref43.tiers,
+    setTiers = _ref43.setTiers,
+    showToast = _ref43.showToast;
+  var _useState67 = useState(10),
+    _useState68 = _slicedToArray(_useState67, 2),
+    simPct = _useState68[0],
+    setSimPct = _useState68[1];
+  var _useState69 = useState(false),
+    _useState70 = _slicedToArray(_useState69, 2),
+    showAdd = _useState70[0],
+    setShowAdd = _useState70[1];
+  var _useState71 = useState(null),
+    _useState72 = _slicedToArray(_useState71, 2),
+    editTier = _useState72[0],
+    setEditTier = _useState72[1];
+  var _useState73 = useState({
       name: "",
       color: "#00D4FF",
       amount: "",
       count: "1"
     }),
-    _useState68 = _slicedToArray(_useState67, 2),
-    form = _useState68[0],
-    setForm = _useState68[1];
+    _useState74 = _slicedToArray(_useState73, 2),
+    form = _useState74[0],
+    setForm = _useState74[1];
   var PALETTE = ["#00D4FF", "#7B2FBE", "#10B981", "#F59E0B", "#EF4444", "#EC4899", "#8B5CF6", "#3B82F6"];
   var totalNow = tiers.reduce(function (s, t) {
     return s + t.amount * t.count;
@@ -4590,17 +4895,17 @@ function DriverBudget(_ref37) {
     setShowAdd(true);
   };
   var saveTier = /*#__PURE__*/function () {
-    var _ref38 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8() {
+    var _ref44 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9() {
       var amt, data, updatedTiers;
-      return _regenerator().w(function (_context8) {
-        while (1) switch (_context8.n) {
+      return _regenerator().w(function (_context9) {
+        while (1) switch (_context9.n) {
           case 0:
             amt = parseInt(form.amount.replace(/[^0-9]/g, ""));
             if (!(!form.name || !amt)) {
-              _context8.n = 1;
+              _context9.n = 1;
               break;
             }
-            return _context8.a(2);
+            return _context9.a(2);
           case 1:
             data = {
               name: form.name,
@@ -4618,41 +4923,41 @@ function DriverBudget(_ref37) {
             setTiers(updatedTiers);
             showToast(editTier ? "Tier diperbarui!" : "Tier ditambahkan!");
             setShowAdd(false);
-            _context8.n = 2;
+            _context9.n = 2;
             return syncToGAS("saveTiers", {
               tiers: updatedTiers
             });
           case 2:
-            return _context8.a(2);
+            return _context9.a(2);
         }
-      }, _callee8);
+      }, _callee9);
     }));
     return function saveTier() {
-      return _ref38.apply(this, arguments);
+      return _ref44.apply(this, arguments);
     };
   }();
   var delTier = /*#__PURE__*/function () {
-    var _ref39 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9(id) {
+    var _ref45 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(id) {
       var updatedTiers;
-      return _regenerator().w(function (_context9) {
-        while (1) switch (_context9.n) {
+      return _regenerator().w(function (_context0) {
+        while (1) switch (_context0.n) {
           case 0:
             updatedTiers = tiers.filter(function (t) {
               return t.id !== id;
             });
             setTiers(updatedTiers);
             showToast("Tier dihapus", "error");
-            _context9.n = 1;
+            _context0.n = 1;
             return syncToGAS("saveTiers", {
               tiers: updatedTiers
             });
           case 1:
-            return _context9.a(2);
+            return _context0.a(2);
         }
-      }, _callee9);
+      }, _callee0);
     }));
-    return function delTier(_x9) {
-      return _ref39.apply(this, arguments);
+    return function delTier(_x8) {
+      return _ref45.apply(this, arguments);
     };
   }();
   var maxAmt = Math.max.apply(Math, _toConsumableArray((tiers || []).map(function (t) {
@@ -5328,58 +5633,58 @@ function DriverBudget(_ref37) {
   }), "Simpan")))));
 }
 // ── OPFUND ────────────────────────────────────────────────────────────────────
-function OpFund(_ref40) {
-  var kantong = _ref40.kantong,
-    setKantong = _ref40.setKantong,
-    showToast = _ref40.showToast;
-  var _useState69 = useState(false),
-    _useState70 = _slicedToArray(_useState69, 2),
-    showTrx = _useState70[0],
-    setShowTrx = _useState70[1];
-  var _useState71 = useState(false),
-    _useState72 = _slicedToArray(_useState71, 2),
-    showEdit = _useState72[0],
-    setShowEdit = _useState72[1];
-  var _useState73 = useState(false),
-    _useState74 = _slicedToArray(_useState73, 2),
-    showReset = _useState74[0],
-    setShowReset = _useState74[1];
+function OpFund(_ref46) {
+  var kantong = _ref46.kantong,
+    setKantong = _ref46.setKantong,
+    showToast = _ref46.showToast;
   var _useState75 = useState(false),
     _useState76 = _slicedToArray(_useState75, 2),
-    showTf = _useState76[0],
-    setShowTf = _useState76[1];
-  var _useState77 = useState(null),
+    showTrx = _useState76[0],
+    setShowTrx = _useState76[1];
+  var _useState77 = useState(false),
     _useState78 = _slicedToArray(_useState77, 2),
-    selK = _useState78[0],
-    setSelK = _useState78[1];
-  var _useState79 = useState({
+    showEdit = _useState78[0],
+    setShowEdit = _useState78[1];
+  var _useState79 = useState(false),
+    _useState80 = _slicedToArray(_useState79, 2),
+    showReset = _useState80[0],
+    setShowReset = _useState80[1];
+  var _useState81 = useState(false),
+    _useState82 = _slicedToArray(_useState81, 2),
+    showTf = _useState82[0],
+    setShowTf = _useState82[1];
+  var _useState83 = useState(null),
+    _useState84 = _slicedToArray(_useState83, 2),
+    selK = _useState84[0],
+    setSelK = _useState84[1];
+  var _useState85 = useState({
       desc: "",
       amount: "",
       type: "out"
     }),
-    _useState80 = _slicedToArray(_useState79, 2),
-    trxForm = _useState80[0],
-    setTrxForm = _useState80[1];
-  var _useState81 = useState(String((kantong === null || kantong === void 0 ? void 0 : kantong.totalBudget) || 48000000)),
-    _useState82 = _slicedToArray(_useState81, 2),
-    editBudget = _useState82[0],
-    setEditBudget = _useState82[1];
-  var _useState83 = useState(((kantong === null || kantong === void 0 ? void 0 : kantong.kantong) || []).map(function (k) {
+    _useState86 = _slicedToArray(_useState85, 2),
+    trxForm = _useState86[0],
+    setTrxForm = _useState86[1];
+  var _useState87 = useState(String((kantong === null || kantong === void 0 ? void 0 : kantong.totalBudget) || 48000000)),
+    _useState88 = _slicedToArray(_useState87, 2),
+    editBudget = _useState88[0],
+    setEditBudget = _useState88[1];
+  var _useState89 = useState(((kantong === null || kantong === void 0 ? void 0 : kantong.kantong) || []).map(function (k) {
       return _objectSpread(_objectSpread({}, k), {}, {
         allocStr: String(k.alloc || 0)
       });
     })),
-    _useState84 = _slicedToArray(_useState83, 2),
-    editK = _useState84[0],
-    setEditK = _useState84[1];
-  var _useState85 = useState({
+    _useState90 = _slicedToArray(_useState89, 2),
+    editK = _useState90[0],
+    setEditK = _useState90[1];
+  var _useState91 = useState({
       from: "",
       to: "",
       amount: ""
     }),
-    _useState86 = _slicedToArray(_useState85, 2),
-    tfForm = _useState86[0],
-    setTfForm = _useState86[1];
+    _useState92 = _slicedToArray(_useState91, 2),
+    tfForm = _useState92[0],
+    setTfForm = _useState92[1];
   var totalAlloc = ((kantong === null || kantong === void 0 ? void 0 : kantong.kantong) || []).reduce(function (s, k) {
     return s + (k.alloc || 0);
   }, 0);
@@ -5402,17 +5707,17 @@ function OpFund(_ref40) {
     return (alloc || 0) - getSpent(kid) + getIn(kid);
   };
   var addTrx = /*#__PURE__*/function () {
-    var _ref41 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0() {
+    var _ref47 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1() {
       var amt, trx;
-      return _regenerator().w(function (_context0) {
-        while (1) switch (_context0.n) {
+      return _regenerator().w(function (_context1) {
+        while (1) switch (_context1.n) {
           case 0:
             amt = evalExpr(trxForm.amount);
             if (!(!trxForm.desc || !amt || !selK)) {
-              _context0.n = 1;
+              _context1.n = 1;
               break;
             }
-            return _context0.a(2);
+            return _context1.a(2);
           case 1:
             trx = {
               id: "KT-" + Date.now(),
@@ -5434,22 +5739,22 @@ function OpFund(_ref40) {
               amount: "",
               type: "out"
             });
-            _context0.n = 2;
+            _context1.n = 2;
             return syncToGAS("addKantongTrx", trx);
           case 2:
-            return _context0.a(2);
+            return _context1.a(2);
         }
-      }, _callee0);
+      }, _callee1);
     }));
     return function addTrx() {
-      return _ref41.apply(this, arguments);
+      return _ref47.apply(this, arguments);
     };
   }();
   var doReset = /*#__PURE__*/function () {
-    var _ref42 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1() {
+    var _ref48 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10() {
       var period, lastReset;
-      return _regenerator().w(function (_context1) {
-        while (1) switch (_context1.n) {
+      return _regenerator().w(function (_context10) {
+        while (1) switch (_context10.n) {
           case 0:
             period = new Date().toLocaleDateString("id-ID", {
               month: "long",
@@ -5465,32 +5770,32 @@ function OpFund(_ref40) {
             });
             showToast("Dana operasional direset!");
             setShowReset(false);
-            _context1.n = 1;
+            _context10.n = 1;
             return syncToGAS("resetKantong", {
               period: period,
               lastReset: lastReset
             });
           case 1:
-            return _context1.a(2);
+            return _context10.a(2);
         }
-      }, _callee1);
+      }, _callee10);
     }));
     return function doReset() {
-      return _ref42.apply(this, arguments);
+      return _ref48.apply(this, arguments);
     };
   }();
   var saveEditBudget = /*#__PURE__*/function () {
-    var _ref43 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10() {
+    var _ref49 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11() {
       var total, updatedK;
-      return _regenerator().w(function (_context10) {
-        while (1) switch (_context10.n) {
+      return _regenerator().w(function (_context11) {
+        while (1) switch (_context11.n) {
           case 0:
             total = evalExpr(editBudget);
             if (total) {
-              _context10.n = 1;
+              _context11.n = 1;
               break;
             }
-            return _context10.a(2);
+            return _context11.a(2);
           case 1:
             updatedK = editK.map(function (k) {
               return _objectSpread(_objectSpread({}, k), {}, {
@@ -5505,37 +5810,37 @@ function OpFund(_ref40) {
             });
             showToast("Budget diperbarui!");
             setShowEdit(false);
-            _context10.n = 2;
+            _context11.n = 2;
             return syncToGAS("saveKantong", {
               kantong: updatedK
             });
           case 2:
-            _context10.n = 3;
+            _context11.n = 3;
             return syncToGAS("updateKantongBudget", {
               totalBudget: total
             });
           case 3:
-            return _context10.a(2);
+            return _context11.a(2);
         }
-      }, _callee10);
+      }, _callee11);
     }));
     return function saveEditBudget() {
-      return _ref43.apply(this, arguments);
+      return _ref49.apply(this, arguments);
     };
   }();
   var doTf = /*#__PURE__*/function () {
-    var _ref44 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11() {
+    var _ref50 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee12() {
       var _find, _find2;
       var amt, fromId, toId, fromName, toName, date, trxOut, trxIn;
-      return _regenerator().w(function (_context11) {
-        while (1) switch (_context11.n) {
+      return _regenerator().w(function (_context12) {
+        while (1) switch (_context12.n) {
           case 0:
             amt = evalExpr(tfForm.amount);
             if (!(!tfForm.from || !tfForm.to || !amt || tfForm.from === tfForm.to)) {
-              _context11.n = 1;
+              _context12.n = 1;
               break;
             }
-            return _context11.a(2);
+            return _context12.a(2);
           case 1:
             fromId = parseInt(tfForm.from), toId = parseInt(tfForm.to);
             fromName = ((_find = ((kantong === null || kantong === void 0 ? void 0 : kantong.kantong) || []).find(function (k) {
@@ -5573,18 +5878,18 @@ function OpFund(_ref40) {
               to: "",
               amount: ""
             });
-            _context11.n = 2;
+            _context12.n = 2;
             return syncToGAS("addKantongTrx", trxOut);
           case 2:
-            _context11.n = 3;
+            _context12.n = 3;
             return syncToGAS("addKantongTrx", trxIn);
           case 3:
-            return _context11.a(2);
+            return _context12.a(2);
         }
-      }, _callee11);
+      }, _callee12);
     }));
     return function doTf() {
-      return _ref44.apply(this, arguments);
+      return _ref50.apply(this, arguments);
     };
   }();
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
@@ -6015,11 +6320,11 @@ function OpFund(_ref40) {
       gap: 8,
       marginBottom: 14
     }
-  }, [["out", "Keluar", "#EF4444"], ["in", "Masuk", "#10B981"]].map(function (_ref45) {
-    var _ref46 = _slicedToArray(_ref45, 3),
-      val = _ref46[0],
-      label = _ref46[1],
-      col = _ref46[2];
+  }, [["out", "Keluar", "#EF4444"], ["in", "Masuk", "#10B981"]].map(function (_ref51) {
+    var _ref52 = _slicedToArray(_ref51, 3),
+      val = _ref52[0],
+      label = _ref52[1],
+      col = _ref52[2];
     return /*#__PURE__*/React.createElement("button", {
       key: val,
       className: "btn",
