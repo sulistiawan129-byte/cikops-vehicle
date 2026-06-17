@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>FleetOS — Vehicle Management System</title>
+<title>CIKOPS - OPERATIONAL FM</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -118,20 +118,14 @@ const INIT_TIERS = [
   {id:2,name:"Regular Driver",color:"#7B2FBE",amount:2000000,count:3},
 ];
 const INIT_KANTONG = {
-  totalBudget:    48000000,
-  allocOpDriver:  32000000,
-  allocEmergency: 16000000,
+  totalBudget:    48000000,  // A — Total Cash Operational
+  allocOpDriver:  9000000,   // A1 — editable
+  allocEmergency: 1500000,   // A2 — editable
+  cashAvailable:  20000000,  // A4 — editable
+  claimSubmitted: 7500000,   // A5 — editable (claim yang diajukan ke Finance)
+  claimPaid:      10000000,  // A6 — editable (claim yang sudah dibayarkan Finance)
   period:         "Juni 2025",
   lastReset:      "2025-06-01",
-  transactions: [
-    {id:1,date:"2025-06-01",desc:"OP Driver Juni - Budi Santoso",amount:3000000,type:"out",category:"opDriver"},
-    {id:2,date:"2025-06-01",desc:"OP Driver Juni - Siti Rahayu",amount:2000000,type:"out",category:"opDriver"},
-    {id:3,date:"2025-06-01",desc:"OP Driver Juni - Ahmad Fauzi",amount:2000000,type:"out",category:"opDriver"},
-    {id:4,date:"2025-06-01",desc:"OP Driver Juni - Dewi Kusuma",amount:2000000,type:"out",category:"opDriver"},
-    {id:5,date:"2025-06-10",desc:"Reimburse BBM - Budi Santoso",amount:550000,type:"out",category:"opDriver"},
-    {id:6,date:"2025-06-08",desc:"Reimburse Tol - Siti Rahayu",amount:120000,type:"out",category:"opDriver"},
-    {id:7,date:"2025-06-05",desc:"Ban bocor - Ahmad Fauzi",amount:180000,type:"out",category:"emergency"},
-  ],
 };
 
 // ─── UTILITY FUNCTIONS ──────────────────────────────────────────────────────
@@ -206,23 +200,23 @@ const buildNotifs = (vehicles, bbm, kantong) => {
   });
 
   if (kantong) {
-    const netOut = (kantong.transactions||[]).reduce((s,t) => s + (t.type==="out" ? (Number(t.amount)||0) : -(Number(t.amount)||0)), 0);
     const totalAlokasi = (kantong.allocOpDriver||0) + (kantong.allocEmergency||0);
-    const sisaTotal = (kantong.totalBudget||0) - netOut;
-    if (sisaTotal < 0) {
+    const outstanding  = totalAlokasi + (kantong.cashAvailable||0) + (kantong.claimSubmitted||0) + (kantong.claimPaid||0);
+    const gap = outstanding - (kantong.totalBudget||0);
+    if (gap > 0) {
       out.push({
-        id: "opfund-deficit",
+        id: "opfund-gap-over",
         type: "warning",
-        title: "Dana Operasional Defisit",
-        msg: `Pengeluaran melebihi total dana sebesar Rp ${fmt(Math.abs(sisaTotal))}. Perlu penambahan dana.`,
+        title: "Dana Operasional GAP Positif",
+        msg: `Outstanding cash operational melebihi total dana sebesar Rp ${fmt(gap)}. Perlu pengecekan.`,
         sortKey: -2,
       });
-    } else if (totalAlokasi > 0 && netOut / totalAlokasi > 0.85) {
+    } else if (gap < 0) {
       out.push({
-        id: "opfund-low",
+        id: "opfund-gap-under",
         type: "info",
-        title: "Dana Operasional Hampir Habis",
-        msg: `Sudah terpakai ${Math.round(netOut/totalAlokasi*100)}% dari total alokasi (Rp ${fmt(netOut)} dari Rp ${fmt(totalAlokasi)}).`,
+        title: "Dana Operasional Belum Terpakai Penuh",
+        msg: `Outstanding cash operational masih Rp ${fmt(Math.abs(gap))} di bawah total dana.`,
         sortKey: -1,
       });
     }
@@ -1192,23 +1186,19 @@ function Reports({ claims, vehicles, showToast, kantong }) {
     // ── Cashflow: dana operasional summary ───────────────────
     let cashflowData = null;
     if (kantong) {
-      const trxList       = kantong.transactions || [];
-      const allocOpDriver = kantong.allocOpDriver  || 0;
-      const allocEmergency= kantong.allocEmergency || 0;
-      const totalBudget   = kantong.totalBudget    || 0;
-
-      const opDriverSpent  = trxList.filter(t => t.type==="out" && t.category==="opDriver").reduce((s,t)=>s+(Number(t.amount)||0),0);
-      const emergencySpent = trxList.filter(t => t.type==="out" && t.category==="emergency").reduce((s,t)=>s+(Number(t.amount)||0),0);
-      const totalOut       = trxList.filter(t => t.type==="out").reduce((s,t)=>s+(Number(t.amount)||0),0);
-      const totalIn        = trxList.filter(t => t.type==="in").reduce((s,t)=>s+(Number(t.amount)||0),0);
-      const netOut         = totalOut - totalIn;
+      const totalBudget    = kantong.totalBudget    || 0;
+      const allocOpDriver  = kantong.allocOpDriver  || 0;
+      const allocEmergency = kantong.allocEmergency || 0;
+      const cashAvailable  = kantong.cashAvailable  || 0;
+      const claimSubmitted = kantong.claimSubmitted || 0;
+      const claimPaid      = kantong.claimPaid      || 0;
       const totalAlokasi   = allocOpDriver + allocEmergency;
+      const outstanding    = totalAlokasi + cashAvailable + claimSubmitted + claimPaid;
 
       cashflowData = {
         totalBudget, allocOpDriver, allocEmergency, totalAlokasi,
-        opDriverSpent, emergencySpent, totalOut, totalIn, netOut,
-        sisaTotal: totalBudget - netOut,
-        gap: totalAlokasi - netOut,
+        cashAvailable, claimSubmitted, claimPaid, outstanding,
+        gap: outstanding - totalBudget,
       };
     }
 
@@ -1757,11 +1747,11 @@ ${cfSection}
                 // ── Summary cards ──
                 React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, marginBottom:20 } },
                   [
-                    { l:"Total Dana",         v:`Rp ${fmt(cf.totalBudget)}`,   col:"#00D4FF" },
-                    { l:"Op Driver Alokasi",  v:`Rp ${fmt(cf.allocOpDriver)}`,  col:"#F59E0B" },
-                    { l:"Emergency Alokasi",  v:`Rp ${fmt(cf.allocEmergency)}`, col:"#EF4444" },
-                    { l:"Outstanding Cash",   v:`Rp ${fmt(cf.netOut)}`,         col:"#9CA3AF" },
-                    { l:"GAP",               v:`${cf.gap>=0?"+":""}Rp ${fmt(cf.gap)}`, col:cf.gap>=0?"#10B981":"#EF4444" },
+                    { l:"Total Cash (A)",        v:`Rp ${fmt(cf.totalBudget)}`,   col:"#00D4FF" },
+                    { l:"Total Alokasi (A3)",    v:`Rp ${fmt(cf.totalAlokasi)}`,  col:"#CBD5E1" },
+                    { l:"Cash Available (A4)",   v:`Rp ${fmt(cf.cashAvailable)}`, col:"#10B981" },
+                    { l:"Outstanding (B)",       v:`Rp ${fmt(cf.outstanding)}`,   col:"#00D4FF" },
+                    { l:"GAP (B−A)",             v:`${cf.gap>=0?"+":""}Rp ${fmt(cf.gap)}`, col:cf.gap===0?"#10B981":cf.gap>0?"#F59E0B":"#EF4444" },
                   ].map((s,i) => React.createElement("div", { key:i, className:"scard", style:{ textAlign:"center", padding:"14px 10px" } },
                     React.createElement("div", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:800, fontSize:15, color:s.col, marginBottom:4, wordBreak:"break-word" } }, s.v),
                     React.createElement("div", { style:{ fontSize:10, color:"#4B5563", textTransform:"uppercase", letterSpacing:"0.5px" } }, s.l)
@@ -1771,79 +1761,44 @@ ${cfSection}
                 // ── Detail table ──
                 React.createElement("div", { className:"glass", style:{ overflow:"hidden" } },
                   React.createElement("div", { style:{ padding:"14px 18px", borderBottom:"1px solid rgba(255,255,255,0.07)" } },
-                    React.createElement("h3", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, fontSize:14 } }, "Rekonsiliasi Dana Operasional")
+                    React.createElement("h3", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, fontSize:14 } }, "Rincian Dana Operasional")
                   ),
                   React.createElement("div", { style:{ overflowX:"auto" } },
                     React.createElement("table", { style:{ width:"100%", borderCollapse:"collapse" } },
                       React.createElement("thead", null,
                         React.createElement("tr", { style:{ borderBottom:"1px solid rgba(255,255,255,0.07)" } },
-                          ["Pos","Alokasi","Realisasi","Sisa","% Terpakai"].map(h =>
+                          ["Pos","Nilai","Keterangan"].map(h =>
                             React.createElement("th", { key:h, style:{ padding:"10px 14px", textAlign:"left", fontSize:11, fontWeight:600, color:"#4B5563", whiteSpace:"nowrap" } }, h)
                           )
                         )
                       ),
                       React.createElement("tbody", null,
-                        // Row Op Driver
-                        React.createElement("tr", { className:"trow" },
-                          React.createElement("td", { style:{ padding:"12px 14px" } },
-                            React.createElement("div", { style:{ display:"flex", alignItems:"center", gap:8 } },
-                              React.createElement("div", { style:{ width:10, height:10, borderRadius:"50%", background:"#F59E0B" } }),
-                              React.createElement("span", { style:{ fontSize:13, fontWeight:600, color:"#E2E8F0" } }, "Operasional Driver")
-                            )
-                          ),
-                          React.createElement("td", { style:{ padding:"12px 14px", fontSize:13, color:"#CBD5E1" } }, `Rp ${fmt(cf.allocOpDriver)}`),
-                          React.createElement("td", { style:{ padding:"12px 14px", fontSize:13, fontWeight:600, color:"#EF4444" } }, `Rp ${fmt(cf.opDriverSpent)}`),
-                          React.createElement("td", { style:{ padding:"12px 14px", fontSize:13, fontWeight:700, color: cf.allocOpDriver - cf.opDriverSpent < 0 ? "#EF4444" : "#10B981" } },
-                            `Rp ${fmt(cf.allocOpDriver - cf.opDriverSpent)}`
-                          ),
-                          React.createElement("td", { style:{ padding:"12px 14px" } },
-                            (() => {
-                              const pct = cf.allocOpDriver > 0 ? (cf.opDriverSpent/cf.allocOpDriver*100) : 0;
-                              return React.createElement("div", { style:{ display:"flex", alignItems:"center", gap:8 } },
-                                React.createElement("div", { style:{ width:60, height:4, background:"rgba(255,255,255,0.08)", borderRadius:2, overflow:"hidden" } },
-                                  React.createElement("div", { style:{ height:"100%", width:`${Math.min(pct,100)}%`, background:"#F59E0B", borderRadius:2 } })
-                                ),
-                                React.createElement("span", { style:{ fontSize:12, color:"#9CA3AF" } }, `${pct.toFixed(1)}%`)
-                              );
-                            })()
-                          )
-                        ),
-                        // Row Emergency
-                        React.createElement("tr", { className:"trow" },
-                          React.createElement("td", { style:{ padding:"12px 14px" } },
-                            React.createElement("div", { style:{ display:"flex", alignItems:"center", gap:8 } },
-                              React.createElement("div", { style:{ width:10, height:10, borderRadius:"50%", background:"#EF4444" } }),
-                              React.createElement("span", { style:{ fontSize:13, fontWeight:600, color:"#E2E8F0" } }, "Emergency")
-                            )
-                          ),
-                          React.createElement("td", { style:{ padding:"12px 14px", fontSize:13, color:"#CBD5E1" } }, `Rp ${fmt(cf.allocEmergency)}`),
-                          React.createElement("td", { style:{ padding:"12px 14px", fontSize:13, fontWeight:600, color:"#EF4444" } }, `Rp ${fmt(cf.emergencySpent)}`),
-                          React.createElement("td", { style:{ padding:"12px 14px", fontSize:13, fontWeight:700, color: cf.allocEmergency - cf.emergencySpent < 0 ? "#EF4444" : "#10B981" } },
-                            `Rp ${fmt(cf.allocEmergency - cf.emergencySpent)}`
-                          ),
-                          React.createElement("td", { style:{ padding:"12px 14px" } },
-                            (() => {
-                              const pct = cf.allocEmergency > 0 ? (cf.emergencySpent/cf.allocEmergency*100) : 0;
-                              return React.createElement("div", { style:{ display:"flex", alignItems:"center", gap:8 } },
-                                React.createElement("div", { style:{ width:60, height:4, background:"rgba(255,255,255,0.08)", borderRadius:2, overflow:"hidden" } },
-                                  React.createElement("div", { style:{ height:"100%", width:`${Math.min(pct,100)}%`, background:"#EF4444", borderRadius:2 } })
-                                ),
-                                React.createElement("span", { style:{ fontSize:12, color:"#9CA3AF" } }, `${pct.toFixed(1)}%`)
-                              );
-                            })()
+                        [
+                          ["Total Cash Operational (A)", cf.totalBudget, "Total dana tersedia", "#00D4FF"],
+                          ["Op Driver (A1)",              cf.allocOpDriver,  "Alokasi", "#F59E0B"],
+                          ["Emergency (A2)",               cf.allocEmergency, "Alokasi", "#EF4444"],
+                          ["Total Alokasi (A3)",           cf.totalAlokasi,   "A1 + A2", "#CBD5E1"],
+                          ["Cash Available (A4)",          cf.cashAvailable,  "Kas tersedia", "#10B981"],
+                          ["Claim Diajukan (A5)",          cf.claimSubmitted, "Diajukan ke Finance", "#3B82F6"],
+                          ["Claim Dibayar (A6)",           cf.claimPaid,      "Sudah dibayar Finance", "#8B5CF6"],
+                          ["Outstanding Cash Operational (B)", cf.outstanding, "A3 + A4 + A5 + A6", "#00D4FF"],
+                        ].map(([label, val, note, col]) =>
+                          React.createElement("tr", { key:label, className:"trow" },
+                            React.createElement("td", { style:{ padding:"11px 14px", fontSize:13, fontWeight:600, color:"#E2E8F0" } }, label),
+                            React.createElement("td", { style:{ padding:"11px 14px", fontSize:13, fontWeight:700, color:col } }, `Rp ${fmt(val)}`),
+                            React.createElement("td", { style:{ padding:"11px 14px", fontSize:12, color:"#6B7280" } }, note)
                           )
                         )
                       ),
-                      // Footer
                       React.createElement("tfoot", null,
-                        React.createElement("tr", { style:{ borderTop:"2px solid rgba(0,212,255,0.15)", background:"rgba(0,212,255,0.03)" } },
-                          React.createElement("td", { style:{ padding:"14px", fontSize:13, fontWeight:700, color:"#CBD5E1" } }, "TOTAL"),
-                          React.createElement("td", { style:{ padding:"14px", fontWeight:700, color:"#CBD5E1" } }, `Rp ${fmt(cf.totalAlokasi)}`),
-                          React.createElement("td", { style:{ padding:"14px", fontWeight:700, color:"#EF4444" } }, `Rp ${fmt(cf.netOut)}`),
-                          React.createElement("td", { style:{ padding:"14px", fontFamily:"'Space Grotesk',sans-serif", fontWeight:800, fontSize:15, color: cf.gap>=0?"#00D4FF":"#EF4444" } },
+                        React.createElement("tr", { style:{ borderTop:"2px solid rgba(0,212,255,0.15)", background: cf.gap===0?"rgba(16,185,129,0.04)":cf.gap>0?"rgba(245,158,11,0.04)":"rgba(239,68,68,0.04)" } },
+                          React.createElement("td", { style:{ padding:"14px", fontSize:13, fontWeight:700, color:"#CBD5E1" } }, "GAP (B − A)"),
+                          React.createElement("td", { style:{ padding:"14px", fontFamily:"'Space Grotesk',sans-serif", fontWeight:800, fontSize:15, color: cf.gap===0?"#10B981":cf.gap>0?"#F59E0B":"#EF4444" } },
                             `${cf.gap>=0?"+":""}Rp ${fmt(cf.gap)}`
                           ),
-                          React.createElement("td", null)
+                          React.createElement("td", { style:{ padding:"14px", fontSize:12, color:"#6B7280" } },
+                            cf.gap===0 ? "Sesuai" : cf.gap>0 ? "Outstanding melebihi total cash" : "Outstanding di bawah total cash"
+                          )
                         )
                       )
                     )
@@ -2099,119 +2054,81 @@ function DriverBudget({tiers,setTiers,showToast}) {
 // ═══════════════════════════════════════════════════════════
 // ── OPFUND (UPGRADED with visual allocation editor) ───────────────────────────
 function OpFund({ kantong, setKantong, showToast }) {
-  // ── Fixed structure: totalBudget, opDriver, emergency, outstandingCash
-  // "Outstanding Cash" = uang yang sudah keluar (total pengeluaran tercatat)
-  // "Sisa Total" = totalBudget - opDriver - emergency - outstandingCash
-  // "GAP" = selisih antara alokasi (opDriver+emergency) vs actual outstanding
+  // ── Direct-input field model (matches finance simulation spec) ──
+  // A  = Total Cash Operational      (totalBudget)
+  // A1 = Op Driver alokasi           (allocOpDriver, editable)
+  // A2 = Emergency alokasi           (allocEmergency, editable)
+  // A3 = Total Alokasi               (A1 + A2, derived)
+  // A4 = Cash Available              (cashAvailable, editable)
+  // A5 = Claim diajukan ke Finance   (claimSubmitted, editable)
+  // A6 = Claim sudah dibayar Finance (claimPaid, editable)
+  // B  = Outstanding Cash Operational = A3 + A4 + A5 + A6
+  // GAP = B - A
 
-  const [showEditBudget, setShowEditBudget] = React.useState(false);
-  const [showTrx,        setShowTrx]        = React.useState(false);
-  const [showReset,      setShowReset]      = React.useState(false);
-  const [trxForm,        setTrxForm]        = React.useState({ desc:"", amount:"", type:"out", category:"opDriver" });
+  const [showEdit, setShowEdit] = React.useState(false);
+  const [showReset, setShowReset] = React.useState(false);
 
-  // Edit budget modal state
+  // Edit form state — strings to support live expression typing
   const [eBudget,    setEBudget]    = React.useState("");
   const [eOpDriver,  setEOpDriver]  = React.useState("");
   const [eEmergency, setEEmergency] = React.useState("");
+  const [eCash,      setECash]      = React.useState("");
+  const [eSubmitted, setESubmitted] = React.useState("");
+  const [ePaid,      setEPaid]      = React.useState("");
 
-  // Derive values from kantong state
-  const totalBudget   = kantong?.totalBudget   || 48000000;
-  const allocOpDriver = kantong?.allocOpDriver  || 32000000;
-  const allocEmergency= kantong?.allocEmergency || 16000000;
-  const transactions  = kantong?.transactions   || [];
+  const totalBudget    = kantong?.totalBudget    ?? 48000000;  // A
+  const allocOpDriver  = kantong?.allocOpDriver  ?? 9000000;   // A1
+  const allocEmergency = kantong?.allocEmergency ?? 1500000;   // A2
+  const cashAvailable  = kantong?.cashAvailable  ?? 0;         // A4
+  const claimSubmitted = kantong?.claimSubmitted ?? 0;         // A5
+  const claimPaid      = kantong?.claimPaid      ?? 0;         // A6
 
-  // Outstanding Cash = total pengeluaran dari semua transaksi
-  const outstandingCash = transactions
-    .filter(t => t.type === "out")
-    .reduce((s, t) => s + (Number(t.amount) || 0), 0);
-  const totalIn = transactions
-    .filter(t => t.type === "in")
-    .reduce((s, t) => s + (Number(t.amount) || 0), 0);
-  const netOut = outstandingCash - totalIn;
+  const totalAlokasi = allocOpDriver + allocEmergency;         // A3
+  const outstanding   = totalAlokasi + cashAvailable + claimSubmitted + claimPaid; // B
+  const gap = outstanding - totalBudget;                        // GAP = B - A
 
-  const sisaTotal = totalBudget - netOut;
-  // GAP: selisih budget yang dialokasikan vs yang sudah dipakai
-  const totalAlokasi = allocOpDriver + allocEmergency;
-  const gap = totalAlokasi - netOut; // positif = masih ada sisa dari alokasi; negatif = over budget
-
-  // Breakdown by category
-  const opDriverSpent  = transactions.filter(t => t.type==="out" && t.category==="opDriver").reduce((s,t)=>s+(Number(t.amount)||0),0);
-  const emergencySpent = transactions.filter(t => t.type==="out" && t.category==="emergency").reduce((s,t)=>s+(Number(t.amount)||0),0);
-  const otherSpent     = netOut - opDriverSpent - emergencySpent;
-
-  // Sync edit state
+  // Sync edit form whenever kantong changes (re-open modal fresh)
   React.useEffect(() => {
     setEBudget(String(totalBudget));
     setEOpDriver(String(allocOpDriver));
     setEEmergency(String(allocEmergency));
+    setECash(String(cashAvailable));
+    setESubmitted(String(claimSubmitted));
+    setEPaid(String(claimPaid));
   }, [kantong]);
 
-  const saveEditBudget = async () => {
-    const newBudget    = evalExpr(eBudget)    || totalBudget;
-    const newOpDriver  = evalExpr(eOpDriver)  || allocOpDriver;
-    const newEmergency = evalExpr(eEmergency) || allocEmergency;
-    setKantong(p => ({ ...p, totalBudget:newBudget, allocOpDriver:newOpDriver, allocEmergency:newEmergency }));
-    showToast("Dana Operasional diperbarui!");
-    setShowEditBudget(false);
-    await syncToGAS("updateKantongBudget", { totalBudget:newBudget, allocOpDriver:newOpDriver, allocEmergency:newEmergency });
-  };
-
-  const addTrx = async () => {
-    const amt = evalExpr(trxForm.amount);
-    if (!trxForm.desc || !amt) return;
-    const trx = {
-      id: "TRX-"+Date.now(),
-      date: new Date().toISOString().slice(0,10),
-      desc: trxForm.desc,
-      amount: amt,
-      type: trxForm.type,
-      category: trxForm.type === "out" ? trxForm.category : "in",
+  const saveEdit = async () => {
+    const updated = {
+      ...kantong,
+      totalBudget:    evalExpr(eBudget)    ?? totalBudget,
+      allocOpDriver:  evalExpr(eOpDriver)  ?? allocOpDriver,
+      allocEmergency: evalExpr(eEmergency) ?? allocEmergency,
+      cashAvailable:  evalExpr(eCash)      ?? cashAvailable,
+      claimSubmitted: evalExpr(eSubmitted) ?? claimSubmitted,
+      claimPaid:      evalExpr(ePaid)      ?? claimPaid,
     };
-    setKantong(p => ({ ...p, transactions:[...(p.transactions||[]), trx] }));
-    showToast(trxForm.type==="out" ? "Pengeluaran dicatat!" : "Pemasukan dicatat!");
-    setShowTrx(false);
-    setTrxForm({ desc:"", amount:"", type:"out", category:"opDriver" });
-    await syncToGAS("addKantongTrx", trx);
-  };
-
-  const deleteTrx = async (id) => {
-    const updated = transactions.filter(t => t.id !== id && t.id !== String(id));
-    setKantong(p => ({ ...p, transactions:updated }));
-    showToast("Transaksi dihapus", "error");
-    await syncToGAS("saveTrx", { transactions:updated });
+    setKantong(updated);
+    showToast("Dana Operasional diperbarui!");
+    setShowEdit(false);
+    await syncToGAS("updateKantongBudget", updated);
   };
 
   const doReset = async () => {
     const period    = new Date().toLocaleDateString("id-ID", { month:"long", year:"numeric" });
     const lastReset = new Date().toISOString().slice(0,10);
-    setKantong(p => ({ ...p, transactions:[], lastReset, period }));
-    showToast("Dana operasional direset!"); setShowReset(false);
-    await syncToGAS("resetKantong", { period, lastReset });
+    const updated = { ...kantong, claimSubmitted:0, claimPaid:0, period, lastReset };
+    setKantong(updated);
+    showToast("Periode direset!"); setShowReset(false);
+    await syncToGAS("resetKantong", updated);
   };
 
-  // ── Styles helpers ──
-  const val = (v, col) => React.createElement("div", {
-    style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:800, fontSize:22, color:col||"#F1F5F9", marginTop:4 }
-  }, `Rp ${fmt(v)}`);
-
-  const label = (text, sub) => React.createElement("div", null,
-    React.createElement("div", { style:{ fontSize:11, fontWeight:600, color:"#6B7280", textTransform:"uppercase", letterSpacing:"0.6px" } }, text),
-    sub && React.createElement("div", { style:{ fontSize:10, color:"#4B5563", marginTop:1 } }, sub)
+  // ── Render helpers ──
+  const row = (label, sub, value, col) => React.createElement("div", { style:{ padding:"16px 24px" } },
+    React.createElement("div", { style:{ fontSize:11, fontWeight:600, color:"#6B7280", textTransform:"uppercase", letterSpacing:"0.6px" } }, label),
+    sub && React.createElement("div", { style:{ fontSize:10, color:"#4B5563", marginTop:1 } }, sub),
+    React.createElement("div", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:800, fontSize:20, color:col||"#F1F5F9", marginTop:6 } }, `Rp ${fmt(value)}`)
   );
 
-  const divider = React.createElement("div", { style:{ height:1, background:"rgba(255,255,255,0.06)", margin:"4px 0" } });
-
-  const pctBar = (used, total, col) => {
-    const pct = total > 0 ? Math.min(used/total*100, 100) : 0;
-    return React.createElement("div", { style:{ height:4, background:"rgba(255,255,255,0.06)", borderRadius:2, overflow:"hidden", marginTop:6 } },
-      React.createElement("div", { style:{ height:"100%", width:`${pct}%`, background:col, borderRadius:2, transition:"width .5s" } })
-    );
-  };
-
-  const CAT_LABELS = { opDriver:"Operasional Driver", emergency:"Emergency", other:"Lainnya" };
-  const CAT_COLORS = { opDriver:"#F59E0B", emergency:"#EF4444", other:"#6B7280" };
-
-  // ── RENDER ──────────────────────────────────────────────────
   return React.createElement("div", null,
 
     // ── Header action bar ──
@@ -2220,11 +2137,8 @@ function OpFund({ kantong, setKantong, showToast }) {
         "Periode: ", React.createElement("span", { style:{ color:"#CBD5E1", fontWeight:600 } }, kantong?.period || "—"),
         " · Reset: ", React.createElement("span", { style:{ color:"#CBD5E1" } }, fmtDate(kantong?.lastReset || ""))
       ),
-      React.createElement("button", { className:"btn btn-s btn-sm", onClick:()=>setShowTrx(true) },
-        React.createElement(Icon, { d:IC.plus, size:13 }), "Catat Transaksi"
-      ),
-      React.createElement("button", { className:"btn btn-s btn-sm", onClick:()=>{ setEBudget(String(totalBudget)); setEOpDriver(String(allocOpDriver)); setEEmergency(String(allocEmergency)); setShowEditBudget(true); } },
-        React.createElement(Icon, { d:IC.edit, size:13 }), "Edit Dana"
+      React.createElement("button", { className:"btn btn-s btn-sm", onClick:()=>setShowEdit(true) },
+        React.createElement(Icon, { d:IC.edit, size:13 }), "Edit Nilai"
       ),
       React.createElement("button", { className:"btn btn-d btn-sm", onClick:()=>setShowReset(true) },
         React.createElement(Icon, { d:IC.refresh, size:13 }), "Reset Periode"
@@ -2232,301 +2146,141 @@ function OpFund({ kantong, setKantong, showToast }) {
     ),
 
     // ══════════════════════════════════════════════════════════
-    // MAIN DASHBOARD CARD
+    // MAIN TABLE — mirrors the finance simulation layout exactly
     // ══════════════════════════════════════════════════════════
     React.createElement("div", { style:{ borderRadius:16, overflow:"hidden", marginBottom:20, border:"1px solid rgba(0,212,255,0.15)" } },
 
-      // ── Header strip ──
-      React.createElement("div", { style:{ background:"linear-gradient(135deg,rgba(0,212,255,0.1),rgba(123,47,190,0.08))", padding:"20px 24px", borderBottom:"1px solid rgba(255,255,255,0.06)" } },
-        React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 } },
-          React.createElement("div", null,
-            React.createElement("div", { style:{ fontSize:12, fontWeight:600, color:"#6B7280", textTransform:"uppercase", letterSpacing:"0.8px", marginBottom:6 } }, "Total Dana Operasional"),
-            React.createElement("div", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:800, fontSize:32, color:"#00D4FF", lineHeight:1 } }, `Rp ${fmt(totalBudget)}`),
-            React.createElement("div", { style:{ fontSize:12, color:"#4B5563", marginTop:6 } },
-              `${transactions.length} transaksi tercatat periode ini`
-            )
-          ),
-          // GAP badge — the headline number
-          React.createElement("div", { style:{
-            padding:"14px 20px", borderRadius:12, textAlign:"center",
-            background: gap > 0 ? "rgba(16,185,129,0.1)" : gap < 0 ? "rgba(239,68,68,0.1)" : "rgba(0,212,255,0.08)",
-            border: `1px solid ${gap > 0 ? "rgba(16,185,129,0.3)" : gap < 0 ? "rgba(239,68,68,0.3)" : "rgba(0,212,255,0.2)"}`,
-          } },
-            React.createElement("div", { style:{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.6px", color:"#6B7280", marginBottom:4 } }, "GAP"),
-            React.createElement("div", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:800, fontSize:22,
-              color: gap > 0 ? "#10B981" : gap < 0 ? "#EF4444" : "#00D4FF"
-            } }, `${gap >= 0 ? "+" : ""}Rp ${fmt(gap)}`),
-            React.createElement("div", { style:{ fontSize:10, color:"#4B5563", marginTop:3 } },
-              gap > 0 ? "Under budget" : gap < 0 ? "Over budget" : "Pas"
-            )
-          )
-        )
+      // ── A: Total Cash Operational header ──
+      React.createElement("div", { style:{ background:"linear-gradient(135deg,rgba(0,212,255,0.12),rgba(123,47,190,0.08))", padding:"20px 24px", borderBottom:"1px solid rgba(255,255,255,0.06)" } },
+        React.createElement("div", { style:{ fontSize:12, fontWeight:600, color:"#6B7280", textTransform:"uppercase", letterSpacing:"0.8px", marginBottom:6 } }, "Total Cash Operational (A)"),
+        React.createElement("div", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:800, fontSize:32, color:"#00D4FF", lineHeight:1 } }, `Rp ${fmt(totalBudget)}`)
       ),
 
-      // ── Allocation rows ──
+      // ── Alokasi rows (A1, A2) ──
       React.createElement("div", { style:{ background:"rgba(0,0,0,0.2)" } },
-
-        // Row: Operasional Driver
-        React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:0, borderBottom:"1px solid rgba(255,255,255,0.05)" } },
-          React.createElement("div", { style:{ padding:"16px 24px", borderRight:"1px solid rgba(255,255,255,0.05)" } },
-            label("Operasional Driver", "Alokasi tetap"),
-            val(allocOpDriver, "#F59E0B"),
-            pctBar(opDriverSpent, allocOpDriver, "#F59E0B")
-          ),
-          React.createElement("div", { style:{ padding:"16px 24px", borderRight:"1px solid rgba(255,255,255,0.05)" } },
-            label("Terpakai", `${allocOpDriver>0?(opDriverSpent/allocOpDriver*100).toFixed(1):0}% dari alokasi`),
-            val(opDriverSpent, "#E2E8F0")
-          ),
-          React.createElement("div", { style:{ padding:"16px 24px" } },
-            label("Sisa Driver"),
-            val(allocOpDriver - opDriverSpent, allocOpDriver - opDriverSpent < 0 ? "#EF4444" : "#10B981")
-          )
+        React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:0, borderBottom:"1px solid rgba(255,255,255,0.05)" } },
+          row("Op Driver (A1)", "Alokasi — editable", allocOpDriver, "#F59E0B"),
+          row("Emergency (A2)", "Alokasi — editable", allocEmergency, "#EF4444")
         ),
-
-        // Row: Emergency
-        React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:0, borderBottom:"1px solid rgba(255,255,255,0.05)" } },
-          React.createElement("div", { style:{ padding:"16px 24px", borderRight:"1px solid rgba(255,255,255,0.05)" } },
-            label("Emergency", "Alokasi tetap"),
-            val(allocEmergency, "#EF4444"),
-            pctBar(emergencySpent, allocEmergency, "#EF4444")
-          ),
-          React.createElement("div", { style:{ padding:"16px 24px", borderRight:"1px solid rgba(255,255,255,0.05)" } },
-            label("Terpakai", `${allocEmergency>0?(emergencySpent/allocEmergency*100).toFixed(1):0}% dari alokasi`),
-            val(emergencySpent, "#E2E8F0")
-          ),
-          React.createElement("div", { style:{ padding:"16px 24px" } },
-            label("Sisa Emergency"),
-            val(allocEmergency - emergencySpent, allocEmergency - emergencySpent < 0 ? "#EF4444" : "#10B981")
-          )
-        ),
-
-        // Row: Outstanding Cash
-        React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:0, borderBottom:"1px solid rgba(255,255,255,0.05)", background:"rgba(255,255,255,0.02)" } },
-          React.createElement("div", { style:{ padding:"16px 24px", borderRight:"1px solid rgba(255,255,255,0.05)" } },
-            label("Outstanding Cash", "Total kas keluar"),
-            val(netOut, "#9CA3AF"),
-            pctBar(netOut, totalBudget, "#9CA3AF")
-          ),
-          React.createElement("div", { style:{ padding:"16px 24px", borderRight:"1px solid rgba(255,255,255,0.05)" } },
-            label("Kas Masuk"),
-            val(totalIn, "#10B981")
-          ),
-          React.createElement("div", { style:{ padding:"16px 24px" } },
-            label("Kas Keluar"),
-            val(outstandingCash, "#EF4444")
-          )
-        ),
-
-        // Footer: Sisa Total + GAP
-        React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:0 } },
-          React.createElement("div", { style:{ padding:"20px 24px", borderRight:"1px solid rgba(255,255,255,0.05)", background: sisaTotal < 0 ? "rgba(239,68,68,0.06)" : "rgba(16,185,129,0.04)" } },
-            label("Sisa Total", "Saldo dari total dana"),
-            React.createElement("div", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:800, fontSize:26, color: sisaTotal < 0 ? "#EF4444" : "#10B981", marginTop:4 } },
-              `Rp ${fmt(sisaTotal)}`
-            ),
-            React.createElement("div", { style:{ fontSize:11, color:"#4B5563", marginTop:4 } },
-              sisaTotal < 0 ? "⚠️ Melebihi dana tersedia" : "✅ Dana masih mencukupi"
-            )
-          ),
-          React.createElement("div", { style:{ padding:"20px 24px", background: gap < 0 ? "rgba(239,68,68,0.06)" : "rgba(0,212,255,0.04)" } },
-            label("GAP", "Alokasi vs Realisasi"),
-            React.createElement("div", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:800, fontSize:26, color: gap < 0 ? "#EF4444" : "#00D4FF", marginTop:4 } },
-              `${gap >= 0 ? "+" : ""}Rp ${fmt(gap)}`
-            ),
-            React.createElement("div", { style:{ fontSize:11, color:"#4B5563", marginTop:4 } },
-              gap > 0
-                ? `Hemat Rp ${fmt(gap)} dari total alokasi Rp ${fmt(totalAlokasi)}`
-                : gap < 0
-                  ? `Kelebihan Rp ${fmt(Math.abs(gap))} dari alokasi`
-                  : "Tepat sesuai alokasi"
-            )
-          )
-        )
-      )
-    ),
-
-    // ══════════════════════════════════════════════════════════
-    // TRANSACTION LOG
-    // ══════════════════════════════════════════════════════════
-    React.createElement("div", { className:"glass", style:{ overflow:"hidden" } },
-      React.createElement("div", { style:{ padding:"14px 18px", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", justifyContent:"space-between", alignItems:"center" } },
-        React.createElement("h3", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, fontSize:14 } },
-          `Riwayat Transaksi (${transactions.length})`
-        ),
-        React.createElement("div", { style:{ display:"flex", gap:6, fontSize:11 } },
-          [["opDriver","#F59E0B"],["emergency","#EF4444"]].map(([cat,col]) =>
-            React.createElement("span", { key:cat, style:{ background:col+"18", color:col, padding:"3px 9px", borderRadius:8, fontSize:11, fontWeight:600 } },
-              cat==="opDriver" ? "OP Driver" : "Emergency"
-            )
-          )
-        )
-      ),
-      React.createElement("div", { style:{ overflowX:"auto" } },
-        React.createElement("table", { style:{ width:"100%", borderCollapse:"collapse" } },
-          React.createElement("thead", null,
-            React.createElement("tr", { style:{ borderBottom:"1px solid rgba(255,255,255,0.07)" } },
-              ["Tanggal","Keterangan","Kategori","Tipe","Jumlah",""].map(h =>
-                React.createElement("th", { key:h, style:{ padding:"10px 14px", textAlign:"left", fontSize:11, fontWeight:600, color:"#4B5563", whiteSpace:"nowrap" } }, h)
-              )
-            )
-          ),
-          React.createElement("tbody", null,
-            transactions.length === 0
-              ? React.createElement("tr", null,
-                  React.createElement("td", { colSpan:6, style:{ padding:"40px", textAlign:"center", color:"#4B5563", fontSize:14 } },
-                    "Belum ada transaksi. Klik \"Catat Transaksi\" untuk mulai."
-                  )
-                )
-              : [...transactions].sort((a,b) => new Date(b.date)-new Date(a.date)).map(t =>
-                  React.createElement("tr", { key:t.id, className:"trow" },
-                    React.createElement("td", { style:{ padding:"11px 14px", fontSize:12, color:"#9CA3AF", whiteSpace:"nowrap" } }, fmtDate(t.date)),
-                    React.createElement("td", { style:{ padding:"11px 14px", fontSize:13, color:"#CBD5E1" } }, t.desc),
-                    React.createElement("td", { style:{ padding:"11px 14px" } },
-                      t.category && t.category !== "in" && React.createElement("span", { className:"tag", style:{
-                        background:(CAT_COLORS[t.category]||"#6B7280")+"18",
-                        color: CAT_COLORS[t.category]||"#6B7280", fontSize:11
-                      } }, CAT_LABELS[t.category]||t.category)
-                    ),
-                    React.createElement("td", { style:{ padding:"11px 14px" } },
-                      React.createElement("span", { className:"badge", style:{
-                        background: t.type==="out" ? "rgba(239,68,68,0.12)" : "rgba(16,185,129,0.12)",
-                        color:      t.type==="out" ? "#EF4444"               : "#10B981"
-                      } }, t.type==="out" ? "Keluar" : "Masuk")
-                    ),
-                    React.createElement("td", { style:{ padding:"11px 14px", fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:14, color:t.type==="out"?"#EF4444":"#10B981", textAlign:"right", whiteSpace:"nowrap" } },
-                      `${t.type==="out"?"-":"+"} Rp ${fmt(t.amount)}`
-                    ),
-                    React.createElement("td", { style:{ padding:"11px 14px" } },
-                      React.createElement("button", { className:"btn btn-d", style:{ padding:"4px 8px", fontSize:11 }, onClick:()=>deleteTrx(t.id) },
-                        React.createElement(Icon, { d:IC.trash, size:11 })
-                      )
-                    )
-                  )
-                )
-          ),
-          transactions.length > 0 && React.createElement("tfoot", null,
-            React.createElement("tr", { style:{ borderTop:"2px solid rgba(0,212,255,0.15)", background:"rgba(0,212,255,0.03)" } },
-              React.createElement("td", { colSpan:4, style:{ padding:"12px 14px", fontSize:13, fontWeight:700, color:"#CBD5E1" } }, "NET CASH FLOW"),
-              React.createElement("td", { style:{ padding:"12px 14px", fontFamily:"'Space Grotesk',sans-serif", fontWeight:800, fontSize:15, color: gap>=0?"#00D4FF":"#EF4444", textAlign:"right" } },
-                `${gap>=0?"+":""} Rp ${fmt(gap)}`
-              ),
-              React.createElement("td", null)
-            )
-          )
-        )
-      )
-    ),
-
-    // ══════════════════════════════════════════════════════════
-    // MODAL: Catat Transaksi
-    // ══════════════════════════════════════════════════════════
-    showTrx && React.createElement("div", { className:"overlay", onClick:e=>e.target===e.currentTarget&&setShowTrx(false) },
-      React.createElement("div", { className:"modal", style:{ maxWidth:420 } },
-        React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 } },
-          React.createElement("h2", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:17 } }, "Catat Transaksi"),
-          React.createElement("button", { className:"btn btn-s btn-sm", style:{ padding:"6px 9px" }, onClick:()=>setShowTrx(false) },
-            React.createElement(Icon, { d:IC.x, size:14 })
-          )
-        ),
-        // Tipe: Keluar / Masuk
-        React.createElement("div", { style:{ display:"flex", gap:8, marginBottom:16 } },
-          [["out","Keluar","#EF4444"],["in","Masuk","#10B981"]].map(([val,lbl,col]) =>
-            React.createElement("button", { key:val, className:"btn", style:{ flex:1, justifyContent:"center", padding:"10px", fontSize:13, fontWeight:600, borderRadius:10,
-              background: trxForm.type===val ? col+"18" : "rgba(255,255,255,0.04)",
-              border: `1px solid ${trxForm.type===val ? col : "rgba(255,255,255,0.08)"}`,
-              color: trxForm.type===val ? col : "#6B7280"
-            }, onClick:()=>setTrxForm(p=>({...p,type:val})) }, lbl)
-          )
-        ),
-        // Kategori (hanya untuk out)
-        trxForm.type === "out" && React.createElement("div", { style:{ marginBottom:14 } },
-          React.createElement("label", { style:{ fontSize:11, color:"#6B7280", fontWeight:600, display:"block", marginBottom:7 } }, "KATEGORI"),
-          React.createElement("div", { style:{ display:"flex", gap:8 } },
-            [["opDriver","Operasional Driver","#F59E0B"],["emergency","Emergency","#EF4444"]].map(([val,lbl,col]) =>
-              React.createElement("button", { key:val, className:"btn", style:{ flex:1, justifyContent:"center", padding:"9px", fontSize:12, fontWeight:600, borderRadius:9,
-                background: trxForm.category===val ? col+"18" : "rgba(255,255,255,0.04)",
-                border: `1px solid ${trxForm.category===val ? col : "rgba(255,255,255,0.08)"}`,
-                color: trxForm.category===val ? col : "#6B7280"
-              }, onClick:()=>setTrxForm(p=>({...p,category:val})) }, lbl)
-            )
-          )
-        ),
-        React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:12 } },
+        // A3 — Total Alokasi (derived, highlighted row)
+        React.createElement("div", { style:{ padding:"14px 24px", background:"rgba(255,255,255,0.03)", borderBottom:"1px solid rgba(255,255,255,0.05)", display:"flex", justifyContent:"space-between", alignItems:"center" } },
           React.createElement("div", null,
-            React.createElement("label", { style:{ fontSize:11, color:"#6B7280", fontWeight:600, display:"block", marginBottom:5 } }, "KETERANGAN"),
-            React.createElement("input", { className:"inp", placeholder:"mis: OP Driver Juni – Budi Santoso", value:trxForm.desc, onChange:e=>setTrxForm(p=>({...p,desc:e.target.value})) })
+            React.createElement("div", { style:{ fontSize:11, fontWeight:600, color:"#6B7280", textTransform:"uppercase", letterSpacing:"0.6px" } }, "Total Alokasi (A3)"),
+            React.createElement("div", { style:{ fontSize:10, color:"#4B5563", marginTop:1 } }, "A1 + A2 — otomatis")
           ),
-          React.createElement("div", null,
-            React.createElement("label", { style:{ fontSize:11, color:"#6B7280", fontWeight:600, display:"block", marginBottom:5 } }, "JUMLAH (Rp)"),
-            React.createElement(ExprInput, { value:trxForm.amount, onChange:v=>setTrxForm(p=>({...p,amount:v})), placeholder:"mis: 3000000" })
-          )
+          React.createElement("div", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:17, color:"#CBD5E1" } }, `Rp ${fmt(totalAlokasi)}`)
         ),
-        React.createElement("div", { style:{ display:"flex", gap:9, marginTop:18 } },
-          React.createElement("button", { className:"btn btn-s", style:{ flex:1 }, onClick:()=>setShowTrx(false) }, "Batal"),
-          React.createElement("button", { className:"btn btn-p", style:{ flex:1 }, onClick:addTrx },
-            React.createElement(Icon, { d:IC.check, size:14, stroke:"#0A0E1A" }), "Simpan"
+
+        // Cash Available, Claim Submitted, Claim Paid (A4, A5, A6)
+        React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:0, borderBottom:"1px solid rgba(255,255,255,0.05)" } },
+          row("Cash Available (A4)", "Editable", cashAvailable, "#10B981"),
+          row("Claim Diajukan (A5)", "Ke Finance — editable", claimSubmitted, "#3B82F6"),
+          row("Claim Dibayar (A6)", "Oleh Finance — editable", claimPaid, "#8B5CF6")
+        ),
+
+        // B — Outstanding Cash Operational
+        React.createElement("div", { style:{ padding:"18px 24px", background:"rgba(0,212,255,0.04)", borderBottom:"1px solid rgba(255,255,255,0.05)", display:"flex", justifyContent:"space-between", alignItems:"center" } },
+          React.createElement("div", null,
+            React.createElement("div", { style:{ fontSize:11, fontWeight:600, color:"#00D4FF", textTransform:"uppercase", letterSpacing:"0.6px" } }, "Outstanding Cash Operational (B)"),
+            React.createElement("div", { style:{ fontSize:10, color:"#4B5563", marginTop:1 } }, "A3 + A4 + A5 + A6 — otomatis")
+          ),
+          React.createElement("div", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:800, fontSize:20, color:"#00D4FF" } }, `Rp ${fmt(outstanding)}`)
+        ),
+
+        // GAP footer
+        React.createElement("div", { style:{ padding:"20px 24px", display:"flex", justifyContent:"space-between", alignItems:"center",
+          background: gap === 0 ? "rgba(16,185,129,0.06)" : gap > 0 ? "rgba(245,158,11,0.06)" : "rgba(239,68,68,0.06)" } },
+          React.createElement("div", null,
+            React.createElement("div", { style:{ fontSize:12, fontWeight:700, color:"#6B7280", textTransform:"uppercase", letterSpacing:"0.6px" } }, "GAP = B − A"),
+            React.createElement("div", { style:{ fontSize:11, color:"#4B5563", marginTop:3 } },
+              gap === 0 ? "Sesuai — outstanding sama dengan total cash" :
+              gap > 0   ? `Outstanding melebihi total cash sebesar Rp ${fmt(gap)}` :
+                          `Outstanding di bawah total cash sebesar Rp ${fmt(Math.abs(gap))}`
+            )
+          ),
+          React.createElement("div", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:800, fontSize:26,
+            color: gap === 0 ? "#10B981" : gap > 0 ? "#F59E0B" : "#EF4444" } },
+            `${gap >= 0 ? "+" : ""}Rp ${fmt(gap)}`
           )
         )
       )
     ),
 
     // ══════════════════════════════════════════════════════════
-    // MODAL: Edit Dana (Budget + Alokasi)
+    // MODAL: Edit Nilai
     // ══════════════════════════════════════════════════════════
-    showEditBudget && React.createElement("div", { className:"overlay", onClick:e=>e.target===e.currentTarget&&setShowEditBudget(false) },
-      React.createElement("div", { className:"modal", style:{ maxWidth:420 } },
+    showEdit && React.createElement("div", { className:"overlay", onClick:e=>e.target===e.currentTarget&&setShowEdit(false) },
+      React.createElement("div", { className:"modal", style:{ maxWidth:440 } },
         React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 } },
           React.createElement("h2", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:17 } }, "Edit Dana Operasional"),
-          React.createElement("button", { className:"btn btn-s btn-sm", style:{ padding:"6px 9px" }, onClick:()=>setShowEditBudget(false) },
+          React.createElement("button", { className:"btn btn-s btn-sm", style:{ padding:"6px 9px" }, onClick:()=>setShowEdit(false) },
             React.createElement(Icon, { d:IC.x, size:14 })
           )
         ),
         React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:14 } },
           React.createElement("div", null,
-            React.createElement("label", { style:{ fontSize:11, color:"#6B7280", fontWeight:600, display:"block", marginBottom:5 } }, "TOTAL DANA OPERASIONAL"),
+            React.createElement("label", { style:{ fontSize:11, color:"#00D4FF", fontWeight:600, display:"block", marginBottom:5 } }, "TOTAL CASH OPERATIONAL (A)"),
             React.createElement(ExprInput, { value:eBudget, onChange:setEBudget, placeholder:"mis: 48000000" })
           ),
           React.createElement("div", { style:{ height:1, background:"rgba(255,255,255,0.07)" } }),
-          React.createElement("div", { style:{ fontSize:11, color:"#6B7280", fontWeight:600, marginBottom:2 } }, "ALOKASI"),
           React.createElement("div", null,
-            React.createElement("label", { style:{ fontSize:11, color:"#F59E0B", fontWeight:600, display:"block", marginBottom:5 } }, "Operasional Driver"),
-            React.createElement(ExprInput, { value:eOpDriver, onChange:setEOpDriver, placeholder:"mis: 32000000" })
+            React.createElement("label", { style:{ fontSize:11, color:"#F59E0B", fontWeight:600, display:"block", marginBottom:5 } }, "OP DRIVER (A1)"),
+            React.createElement(ExprInput, { value:eOpDriver, onChange:setEOpDriver, placeholder:"mis: 9000000" })
           ),
           React.createElement("div", null,
-            React.createElement("label", { style:{ fontSize:11, color:"#EF4444", fontWeight:600, display:"block", marginBottom:5 } }, "Emergency"),
-            React.createElement(ExprInput, { value:eEmergency, onChange:setEEmergency, placeholder:"mis: 16000000" })
+            React.createElement("label", { style:{ fontSize:11, color:"#EF4444", fontWeight:600, display:"block", marginBottom:5 } }, "EMERGENCY (A2)"),
+            React.createElement(ExprInput, { value:eEmergency, onChange:setEEmergency, placeholder:"mis: 1500000" })
+          ),
+          React.createElement("div", { style:{ height:1, background:"rgba(255,255,255,0.07)" } }),
+          React.createElement("div", null,
+            React.createElement("label", { style:{ fontSize:11, color:"#10B981", fontWeight:600, display:"block", marginBottom:5 } }, "CASH AVAILABLE (A4)"),
+            React.createElement(ExprInput, { value:eCash, onChange:setECash, placeholder:"mis: 20000000" })
+          ),
+          React.createElement("div", null,
+            React.createElement("label", { style:{ fontSize:11, color:"#3B82F6", fontWeight:600, display:"block", marginBottom:5 } }, "CLAIM DIAJUKAN KE FINANCE (A5)"),
+            React.createElement(ExprInput, { value:eSubmitted, onChange:setESubmitted, placeholder:"mis: 7500000" })
+          ),
+          React.createElement("div", null,
+            React.createElement("label", { style:{ fontSize:11, color:"#8B5CF6", fontWeight:600, display:"block", marginBottom:5 } }, "CLAIM SUDAH DIBAYAR FINANCE (A6)"),
+            React.createElement(ExprInput, { value:ePaid, onChange:setEPaid, placeholder:"mis: 10000000" })
           )
         ),
-        // Live summary
+
+        // Live preview of A3, B, GAP as user types
         (() => {
-          const bv = evalExpr(eBudget)||0;
-          const od = evalExpr(eOpDriver)||0;
-          const em = evalExpr(eEmergency)||0;
-          const total = od + em;
-          const diff  = bv - total;
+          const pA  = evalExpr(eBudget)    ?? totalBudget;
+          const pA1 = evalExpr(eOpDriver)  ?? allocOpDriver;
+          const pA2 = evalExpr(eEmergency) ?? allocEmergency;
+          const pA4 = evalExpr(eCash)      ?? cashAvailable;
+          const pA5 = evalExpr(eSubmitted) ?? claimSubmitted;
+          const pA6 = evalExpr(ePaid)      ?? claimPaid;
+          const pA3 = pA1 + pA2;
+          const pB  = pA3 + pA4 + pA5 + pA6;
+          const pGap = pB - pA;
           return React.createElement("div", { style:{ marginTop:16, padding:"12px 14px", borderRadius:10, fontSize:12,
-            background: Math.abs(diff)<1000 ? "rgba(16,185,129,0.07)" : diff>0 ? "rgba(0,212,255,0.06)" : "rgba(239,68,68,0.07)",
-            border:`1px solid ${Math.abs(diff)<1000?"rgba(16,185,129,0.2)":diff>0?"rgba(0,212,255,0.2)":"rgba(239,68,68,0.2)"}`
-          } },
+            background: pGap === 0 ? "rgba(16,185,129,0.07)" : pGap > 0 ? "rgba(245,158,11,0.06)" : "rgba(239,68,68,0.07)",
+            border:`1px solid ${pGap===0?"rgba(16,185,129,0.2)":pGap>0?"rgba(245,158,11,0.2)":"rgba(239,68,68,0.2)"}` } },
             React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", marginBottom:5 } },
-              React.createElement("span", { style:{ color:"#6B7280" } }, "Total Dana:"),
-              React.createElement("span", { style:{ fontWeight:700, color:"#E2E8F0" } }, `Rp ${fmt(bv)}`)
+              React.createElement("span", { style:{ color:"#6B7280" } }, "Total Alokasi (A3):"),
+              React.createElement("span", { style:{ fontWeight:700, color:"#E2E8F0" } }, `Rp ${fmt(pA3)}`)
             ),
             React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", marginBottom:5 } },
-              React.createElement("span", { style:{ color:"#6B7280" } }, "Op Driver + Emergency:"),
-              React.createElement("span", { style:{ fontWeight:700, color:"#E2E8F0" } }, `Rp ${fmt(total)}`)
+              React.createElement("span", { style:{ color:"#6B7280" } }, "Outstanding (B):"),
+              React.createElement("span", { style:{ fontWeight:700, color:"#00D4FF" } }, `Rp ${fmt(pB)}`)
             ),
             React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", borderTop:"1px solid rgba(255,255,255,0.07)", paddingTop:6, marginTop:2 } },
-              React.createElement("span", { style:{ color:"#6B7280" } }, "Selisih:"),
+              React.createElement("span", { style:{ color:"#6B7280" } }, "GAP:"),
               React.createElement("span", { style:{ fontWeight:800, fontSize:14,
-                color: Math.abs(diff)<1000?"#10B981":diff>0?"#00D4FF":"#EF4444"
-              } }, Math.abs(diff)<1000 ? "✅ Pas" : diff>0 ? `Sisa Rp ${fmt(diff)}` : `⚠ Lebih Rp ${fmt(Math.abs(diff))}`)
+                color: pGap===0?"#10B981":pGap>0?"#F59E0B":"#EF4444" } },
+                `${pGap>=0?"+":""}Rp ${fmt(pGap)}`
+              )
             )
           );
         })(),
+
         React.createElement("div", { style:{ display:"flex", gap:9, marginTop:16 } },
-          React.createElement("button", { className:"btn btn-s", style:{ flex:1 }, onClick:()=>setShowEditBudget(false) }, "Batal"),
-          React.createElement("button", { className:"btn btn-p", style:{ flex:1 }, onClick:saveEditBudget },
+          React.createElement("button", { className:"btn btn-s", style:{ flex:1 }, onClick:()=>setShowEdit(false) }, "Batal"),
+          React.createElement("button", { className:"btn btn-p", style:{ flex:1 }, onClick:saveEdit },
             React.createElement(Icon, { d:IC.check, size:14, stroke:"#0A0E1A" }), "Simpan"
           )
         )
@@ -2543,7 +2297,7 @@ function OpFund({ kantong, setKantong, showToast }) {
         ),
         React.createElement("h2", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:18, marginBottom:8 } }, "Reset Periode?"),
         React.createElement("p", { style:{ fontSize:13, color:"#6B7280", marginBottom:20, lineHeight:1.6 } },
-          "Semua riwayat transaksi periode ini akan dihapus. Alokasi dana tetap sama."
+          "Claim Diajukan (A5) dan Claim Dibayar (A6) akan direset ke 0. Total cash dan alokasi tetap sama."
         ),
         React.createElement("div", { style:{ display:"flex", gap:9 } },
           React.createElement("button", { className:"btn btn-s", style:{ flex:1 }, onClick:()=>setShowReset(false) }, "Batal"),
