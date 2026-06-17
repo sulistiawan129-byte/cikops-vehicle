@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>CIKOPS - OPERATIONAL FM</title>
+<title>FleetOS — Vehicle Management System</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -1242,6 +1242,7 @@ function Reports({ claims, vehicles, showToast, kantong }) {
   const downloadPDF = () => {
     if (!report || report.empty || downloading) return;
     setDownloading(true);
+    try {
     const { monthClaims, weeks, byDriver, byType, grand, avgPerWeek, topDriver, topType, insights, cashflowData, _reportYear, _reportMonth } = report;
 
     const wkLbl = (w) => weekLabel(w, _reportYear, _reportMonth);
@@ -1289,27 +1290,24 @@ function Reports({ claims, vehicles, showToast, kantong }) {
         </tr>`);
     }).join("");
 
-    const cfRows = cashflowData ? cashflowData.map(k => `
-      <tr>
-        <td style="color:${k.color}">${k.name}</td>
-        <td class="num">Rp ${fmt(k.alloc)}</td>
-        <td class="num">Rp ${fmt(k.netTrx)}</td>
-        <td class="num bold ${k.sisa < 0 ? "red" : "green"}">Rp ${fmt(k.sisa)}</td>
-        <td class="num">${k.alloc > 0 ? (k.netTrx/k.alloc*100).toFixed(1) : 0}%</td>
-      </tr>`).join("") : "";
-
     const cfSection = cashflowData ? `
       <div class="sec">
-        <div class="sec-title">Cashflow Dana Operasional</div>
+        <div class="sec-title">Dana Operasional</div>
         <table>
-          <thead><tr><th>Kantong</th><th>Alokasi</th><th>Terpakai</th><th>Sisa</th><th>%</th></tr></thead>
-          <tbody>${cfRows}</tbody>
+          <thead><tr><th>Pos</th><th>Nilai</th><th>Keterangan</th></tr></thead>
+          <tbody>
+            <tr><td>Total Cash Operational (A)</td><td class="num bold cyan">Rp ${fmt(cashflowData.totalBudget)}</td><td>Total dana tersedia</td></tr>
+            <tr><td>Op Driver (A1)</td><td class="num">Rp ${fmt(cashflowData.allocOpDriver)}</td><td>Alokasi</td></tr>
+            <tr><td>Emergency (A2)</td><td class="num">Rp ${fmt(cashflowData.allocEmergency)}</td><td>Alokasi</td></tr>
+            <tr><td>Total Alokasi (A3)</td><td class="num bold">Rp ${fmt(cashflowData.totalAlokasi)}</td><td>A1 + A2</td></tr>
+            <tr><td>Cash Available (A4)</td><td class="num">Rp ${fmt(cashflowData.cashAvailable)}</td><td>Kas tersedia</td></tr>
+            <tr><td>Claim Diajukan (A5)</td><td class="num">Rp ${fmt(cashflowData.claimSubmitted)}</td><td>Diajukan ke Finance</td></tr>
+            <tr><td>Claim Dibayar (A6)</td><td class="num">Rp ${fmt(cashflowData.claimPaid)}</td><td>Sudah dibayar Finance</td></tr>
+          </tbody>
           <tfoot><tr class="tfoot-row">
-            <td><strong>TOTAL</strong></td>
-            <td class="num">Rp ${fmt(cashflowData.reduce((s,k)=>s+k.alloc,0))}</td>
-            <td class="num">Rp ${fmt(cashflowData.reduce((s,k)=>s+k.netTrx,0))}</td>
-            <td class="num cyan">Rp ${fmt(cashflowData.reduce((s,k)=>s+k.sisa,0))}</td>
-            <td></td>
+            <td><strong>Outstanding (B) = A3+A4+A5+A6</strong></td>
+            <td class="num cyan">Rp ${fmt(cashflowData.outstanding)}</td>
+            <td>GAP (B−A): ${cashflowData.gap >= 0 ? "+" : ""}Rp ${fmt(cashflowData.gap)}</td>
           </tr></tfoot>
         </table>
       </div>` : "";
@@ -1422,6 +1420,11 @@ ${cfSection}
     win.document.write(html); win.document.close(); win.focus();
     setTimeout(() => win.print(), 800);
     setDownloading(false);
+    } catch (err) {
+      console.error("downloadPDF error:", err);
+      showToast("Gagal membuat PDF: " + err.message, "error");
+      setDownloading(false);
+    }
   };
 
   const r = report;
