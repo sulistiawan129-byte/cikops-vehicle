@@ -14,27 +14,75 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#080C16;font-family:'Inter',system-ui,sans-serif;color:#EDF1F7}
+
+:root,
+html[data-theme="dark"]{
+  --bg:#080C16; --surface:#0E1422; --surface-2:#131A2B; --surface-3:#0B1018;
+  --border:var(--border); --border-strong:rgba(0,184,224,0.18);
+  --border-02:var(--border-02); --border-03:var(--border-03); --border-04:var(--border-04);
+  --border-05:var(--border-05); --border-06:var(--border-06); --border-08:var(--border-08);
+  --border-09:var(--border-09); --border-12:var(--border-12);
+  --accent:#00B8E0; --accent-hover:#1FC8EE; --accent-dim:rgba(0,184,224,0.12); --accent-on:#06101C;
+  --ok:#1FAE6E; --warn:#D69A1F; --danger:#E0524A;
+  --t1:#EDF1F7; --t2:#AEB8C9; --t3:#8A95A8; --t4:#6B7588; --t5:#4D5666;
+  --scrollbar-track:#0E1422; --scrollbar-thumb:#26304a;
+  --overlay-bg:rgba(4,7,14,0.78);
+  --shadow:0 2px 6px rgba(0,0,0,0.4);
+}
+html[data-theme="light"]{
+  --bg:#F4F6FA; --surface:#FFFFFF; --surface-2:#F1F4F9; --surface-3:#EAEEF5;
+  --border:rgba(15,23,42,0.10); --border-strong:rgba(0,134,168,0.22);
+  --border-02:rgba(15,23,42,0.035); --border-03:rgba(15,23,42,0.05); --border-04:rgba(15,23,42,0.06);
+  --border-05:rgba(15,23,42,0.07); --border-06:rgba(15,23,42,0.08); --border-08:rgba(15,23,42,0.10);
+  --border-09:rgba(15,23,42,0.11); --border-12:rgba(15,23,42,0.14);
+  --accent:#00748F; --accent-hover:#008AAD; --accent-dim:rgba(0,116,143,0.08); --accent-on:#FFFFFF;
+  --ok:#1A9E63; --warn:#C28A1A; --danger:#D4453D;
+  --t1:#0F172A; --t2:#3F4A5E; --t3:#64748B; --t4:#7A8699; --t5:#94A3B8;
+  --scrollbar-track:#EAEEF5; --scrollbar-thumb:#CBD5E1;
+  --overlay-bg:rgba(30,38,56,0.45);
+  --shadow:0 2px 8px rgba(15,23,42,0.10);
+}
+
+body{background:var(--bg);font-family:'Inter',system-ui,sans-serif;color:var(--t1);transition:background .2s,color .2s}
 ::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-track{background:#0E1422}
-::-webkit-scrollbar-thumb{background:#26304a;border-radius:4px}
-.leaflet-container{background:#0E1422;font-family:'Inter',system-ui,sans-serif}
-.leaflet-popup-content-wrapper{background:#0E1422;color:#EDF1F7;border-radius:10px;border:1px solid rgba(255,255,255,0.1)}
-.leaflet-popup-tip{background:#0E1422}
+::-webkit-scrollbar-track{background:var(--scrollbar-track)}
+::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:4px}
+.leaflet-container{background:var(--surface);font-family:'Inter',system-ui,sans-serif}
+.leaflet-popup-content-wrapper{background:var(--surface);color:var(--t1);border-radius:10px;border:1px solid var(--border)}
+.leaflet-popup-tip{background:var(--surface)}
 .leaflet-popup-content{margin:12px 14px;font-size:12px}
-.leaflet-control-zoom a{background:#0E1422!important;color:#EDF1F7!important;border-color:rgba(255,255,255,0.1)!important}
-.leaflet-control-zoom a:hover{background:#131A2B!important}
-.leaflet-control-attribution{background:rgba(8,12,22,0.8)!important;color:#6B7588!important;font-size:9px!important}
-.leaflet-control-attribution a{color:#8A95A8!important}
-.gas-pin{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50% 50% 50% 0;background:#00B8E0;border:2px solid #06101C;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,0.4)}
+.leaflet-control-zoom a{background:var(--surface)!important;color:var(--t1)!important;border-color:var(--border)!important}
+.leaflet-control-zoom a:hover{background:var(--surface-2)!important}
+.leaflet-control-attribution{background:rgba(8,12,22,0.7)!important;color:var(--t4)!important;font-size:9px!important}
+.leaflet-control-attribution a{color:var(--t3)!important}
+.gas-pin{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50% 50% 50% 0;background:var(--accent);border:2px solid var(--accent-on);transform:rotate(-45deg);box-shadow:var(--shadow)}
 .gas-pin svg{transform:rotate(45deg)}
-.gas-pin.placing{background:#D69A1F;animation:pulse-pin 1s infinite}
+.gas-pin.placing{background:var(--warn);animation:pulse-pin 1s infinite}
 @keyframes pulse-pin{0%,100%{transform:rotate(-45deg) scale(1)}50%{transform:rotate(-45deg) scale(1.15)}}
 .crosshair-cursor{cursor:crosshair!important}
+/* Map tiles always show real terrain colors (green=vegetation, blue=water).
+   In dark mode we invert+hue-rotate so the map isn't blindingly bright next
+   to the rest of the dark UI, while keeping water blue and land natural —
+   not just a flat dark-grey basemap with no geographic information. */
+html[data-theme="dark"] .fleetos-map-tiles{
+  filter: invert(94%) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.85);
+}
+html[data-theme="dark"] .leaflet-container{ background:#1a2233; }
 </style>
 </head>
 <body>
-<div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#080C16;color:#EDF1F7"><div style="width:36px;height:36px;border-radius:50%;border:2.5px solid #00B8E0;border-top-color:transparent;animation:spin .8s linear infinite"></div><div style="font-size:13px;color:#4D5666">Memuat FleetOS...</div></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style></div>
+<script>
+  // Apply saved theme before paint to avoid a flash of the wrong theme.
+  (function(){
+    try {
+      var saved = localStorage.getItem('fleetos-theme');
+      document.documentElement.setAttribute('data-theme', saved === 'light' ? 'light' : 'dark');
+    } catch(e) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+</script>
+<div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:var(--bg);color:var(--t1)"><div style="width:36px;height:36px;border-radius:50%;border:2.5px solid var(--accent);border-top-color:transparent;animation:spin .8s linear infinite"></div><div style="font-size:13px;color:var(--t5)">Memuat FleetOS...</div></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style></div>
 
 <script>
   window.__GAS_URL__ = "https://script.google.com/macros/s/AKfycbx5YgJpl_V1OgRHF0qZg89hAN41w_DzvDW1M42C90UIfga4NcSp7_M2Rd0NIRpVli5R/exec";
@@ -111,6 +159,8 @@ const IC = {
   search:    ["M11 19a8 8 0 100-16 8 8 0 000 16z","M21 21l-4.35-4.35"],
   target:    ["M12 22a10 10 0 100-20 10 10 0 000 20z","M12 16a4 4 0 100-8 4 4 0 000 8z","M12 2v2","M12 20v2","M2 12h2","M20 12h2"],
   list:      ["M8 6h13","M8 12h13","M8 18h13","M3 6h.01","M3 12h.01","M3 18h.01"],
+  sun:       ["M12 17a5 5 0 100-10 5 5 0 000 10z","M12 1v2","M12 21v2","M4.22 4.22l1.42 1.42","M18.36 18.36l1.42 1.42","M1 12h2","M21 12h2","M4.22 19.78l1.42-1.42","M18.36 5.64l1.42-1.42"],
+  moon:      "M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z",
 };
 
 // ─── STATIC DATA ────────────────────────────────────────────────────────────
@@ -136,8 +186,8 @@ const INIT_CLAIMS = [
   {id:8,driver:"Ahmad Fauzi",driverName:"Ahmad Fauzi",date:"2025-04-22",type:"Gasoline",types:"Gasoline",items:[{type:"Gasoline",expr:"280000+120000",total:400000}],expr:"280000+120000",total:400000,status:"submitted",note:"Distribusi Bekasi"},
 ];
 const INIT_TIERS = [
-  {id:1,name:"Senior Driver",color:"#00B8E0",amount:3000000,count:1},
-  {id:2,name:"Regular Driver",color:"#1FAE6E",amount:2000000,count:3},
+  {id:1,name:"Senior Driver",color:"var(--accent)",amount:3000000,count:1},
+  {id:2,name:"Regular Driver",color:"var(--ok)",amount:2000000,count:3},
 ];
 const INIT_KANTONG = {
   totalBudget:    48000000,
@@ -162,7 +212,7 @@ const MAP_DEFAULT_ZOOM = 13;
 const fmt      = n  => new Intl.NumberFormat("id-ID").format(Math.round(Number(n) || 0));
 const fmtDate  = d  => d ? new Date(d).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}) : "-";
 const daysUntil = d => { if(!d) return 999; return Math.ceil((new Date(d)-new Date())/86400000); };
-const urgCol   = d  => d<=7?"#E0524A":d<=30?"#D69A1F":"#1FAE6E";
+const urgCol   = d  => d<=7?"var(--danger)":d<=30?"var(--warn)":"var(--ok)";
 const evalExpr = raw => {
   const c = (raw||"").replace(/[^0-9+\-*/().\s]/g,"").slice(0,120);
   if (!c.trim()) return null;
@@ -251,63 +301,63 @@ const buildNotifs = (vehicles, kantong) => {
 
 const SL = {submitted:"Terkirim"};
 // 4 semantic colors reused across claim types (was 6 random colors)
-const TYPE_COL = {Gasoline:"#1FAE6E", Toll:"#00B8E0", Parking:"#D69A1F", Service:"#E0524A", Maintenance:"#E0524A", Other:"#8A95A8"};
-const CHART_COLS = ["#00B8E0","#1FAE6E","#D69A1F","#E0524A"];
+const TYPE_COL = {Gasoline:"var(--ok)", Toll:"var(--accent)", Parking:"var(--warn)", Service:"var(--danger)", Maintenance:"var(--danger)", Other:"var(--t3)"};
+const CHART_COLS = ["var(--accent)","var(--ok)","var(--warn)","var(--danger)"];
 const MONTHS = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 
 // ─── GLOBAL STYLES ──────────────────────────────────────────────────────────
 const CSS = `
   *{box-sizing:border-box;margin:0;padding:0}
   ::-webkit-scrollbar{width:4px;height:4px}
-  ::-webkit-scrollbar-track{background:#0E1422}
-  ::-webkit-scrollbar-thumb{background:#26304a;border-radius:4px}
+  ::-webkit-scrollbar-track{background:var(--surface)}
+  ::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:4px}
   input,select,textarea{font-family:inherit}
 
   /* Flat surface — no blur, 1px border only */
-  .card{background:#0E1422;border:1px solid rgba(255,255,255,0.07);border-radius:12px}
-  .card-flat{background:#0E1422;border:1px solid rgba(255,255,255,0.07);border-radius:10px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px}
+  .card-flat{background:var(--surface);border:1px solid var(--border);border-radius:10px}
 
   .btn{border:none;cursor:pointer;border-radius:9px;font-family:inherit;font-weight:600;transition:background .15s,border-color .15s;display:inline-flex;align-items:center;gap:7px}
-  .btn-p{background:#00B8E0;color:#06101C;padding:10px 18px;font-size:13px}
-  .btn-p:hover{background:#1FC8EE}
-  .btn-s{background:#131A2B;color:#AEB8C9;border:1px solid rgba(255,255,255,0.09);padding:10px 18px;font-size:13px}
-  .btn-s:hover{background:#1A2236;color:#EDF1F7}
-  .btn-d{background:rgba(224,82,74,0.1);color:#E0524A;border:1px solid rgba(224,82,74,0.22);padding:7px 12px;font-size:12px}
+  .btn-p{background:var(--accent);color:var(--accent-on);padding:10px 18px;font-size:13px}
+  .btn-p:hover{background:var(--accent-hover)}
+  .btn-s{background:var(--surface-2);color:var(--t2);border:1px solid var(--border-09);padding:10px 18px;font-size:13px}
+  .btn-s:hover{background:var(--surface-2);color:var(--t1)}
+  .btn-d{background:rgba(224,82,74,0.1);color:var(--danger);border:1px solid rgba(224,82,74,0.22);padding:7px 12px;font-size:12px}
   .btn-d:hover{background:rgba(224,82,74,0.18)}
   .btn-sm{padding:7px 12px !important;font-size:12px !important}
 
-  .inp{background:#0B1018;border:1px solid rgba(255,255,255,0.09);border-radius:9px;color:#EDF1F7;padding:10px 13px;font-size:13px;width:100%;outline:none;transition:border-color .15s}
-  .inp:focus{border-color:#00B8E0}
-  .inp::placeholder{color:#4D5666}
-  select.inp option{background:#131A2B}
+  .inp{background:var(--surface-3);border:1px solid var(--border-09);border-radius:9px;color:var(--t1);padding:10px 13px;font-size:13px;width:100%;outline:none;transition:border-color .15s}
+  .inp:focus{border-color:var(--accent)}
+  .inp::placeholder{color:var(--t5)}
+  select.inp option{background:var(--surface-2)}
 
   .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600}
   .tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:600;border-left:2px solid currentColor}
 
-  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:background .15s,color .15s;color:#6B7588;border:none;background:none;width:100%;text-align:left;font-family:inherit;font-size:13px;font-weight:500}
-  .nav-item:hover{background:rgba(255,255,255,0.04);color:#AEB8C9}
-  .nav-item.active{background:rgba(0,184,224,0.1);color:#00B8E0}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:background .15s,color .15s;color:var(--t4);border:none;background:none;width:100%;text-align:left;font-family:inherit;font-size:13px;font-weight:500}
+  .nav-item:hover{background:var(--border-04);color:var(--t2)}
+  .nav-item.active{background:rgba(0,184,224,0.1);color:var(--accent)}
 
-  .scard{background:#0E1422;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:18px;transition:border-color .15s}
+  .scard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;transition:border-color .15s}
   .scard:hover{border-color:rgba(0,184,224,0.22)}
 
-  .trow{border-bottom:1px solid rgba(255,255,255,0.05);transition:background .15s}
-  .trow:hover{background:rgba(255,255,255,0.02)}
+  .trow{border-bottom:1px solid var(--border-05);transition:background .15s}
+  .trow:hover{background:var(--border-02)}
 
-  .overlay{position:fixed;inset:0;background:rgba(4,7,14,0.78);backdrop-filter:blur(3px);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
-  .modal{background:#0E1422;border:1px solid rgba(255,255,255,0.09);border-radius:16px;padding:26px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+  .overlay{position:fixed;inset:0;background:var(--overlay-bg);backdrop-filter:blur(3px);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px}
+  .modal{background:var(--surface);border:1px solid var(--border-09);border-radius:16px;padding:26px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
 
-  .prog{height:4px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden}
+  .prog{height:4px;background:var(--border-06);border-radius:4px;overflow:hidden}
   .prog-f{height:100%;border-radius:4px;transition:width .4s}
 
-  .mob-nav{position:fixed;bottom:0;left:0;right:0;background:#080C16;border-top:1px solid rgba(255,255,255,0.07);display:flex;justify-content:space-around;padding:8px 0 14px;z-index:40}
-  .mob-btn{display:flex;flex-direction:column;align-items:center;gap:3px;color:#6B7588;background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:8px;transition:color .15s;min-width:44px}
-  .mob-btn.active{color:#00B8E0}
+  .mob-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 0 14px;z-index:40}
+  .mob-btn{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--t4);background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:8px;transition:color .15s;min-width:44px}
+  .mob-btn.active{color:var(--accent)}
   .mob-btn span{font-size:10px;font-weight:500;font-family:inherit}
 
   .expr-wrap{position:relative}
-  .expr-pre{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;color:#00B8E0;pointer-events:none;white-space:nowrap;font-family:'Space Grotesk',sans-serif}
-  .expr-err{color:#E0524A}
+  .expr-pre{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;color:var(--accent);pointer-events:none;white-space:nowrap;font-family:'Space Grotesk',sans-serif}
+  .expr-err{color:var(--danger)}
 
   @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.35}}
   @keyframes fade-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
@@ -327,14 +377,14 @@ const CSS = `
   @media(min-width:769px){.mob-nav{display:none!important}}
   @keyframes spin{to{transform:rotate(360deg)}}
 
-  .range-inp{-webkit-appearance:none;appearance:none;height:5px;border-radius:3px;background:rgba(255,255,255,0.08);outline:none;cursor:pointer;width:100%}
-  .range-inp::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#00B8E0;cursor:pointer}
+  .range-inp{-webkit-appearance:none;appearance:none;height:5px;border-radius:3px;background:var(--border-08);outline:none;cursor:pointer;width:100%}
+  .range-inp::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);cursor:pointer}
 
   .deficit{background:rgba(224,82,74,0.07);border:1px solid rgba(224,82,74,0.22);border-radius:9px;padding:10px 14px}
   .surplus{background:rgba(31,174,110,0.06);border:1px solid rgba(31,174,110,0.2);border-radius:9px;padding:10px 14px}
 
   /* Section label — signature element: thin accent rule, not gradient */
-  .sec-label{font-size:11px;font-weight:700;color:#00B8E0;text-transform:uppercase;letter-spacing:0.6px;padding-bottom:8px;border-bottom:1px solid rgba(0,184,224,0.18);margin-bottom:14px}
+  .sec-label{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.6px;padding-bottom:8px;border-bottom:1px solid rgba(0,184,224,0.18);margin-bottom:14px}
 
   /* Tabular numerals for all currency display */
   .num{font-family:'Space Grotesk',sans-serif;font-feature-settings:"tnum"}
@@ -483,6 +533,22 @@ function App() {
   const [loading,   setLoading]   = useState(false);
   const [gasReady,  setGasReady]  = useState(false);
   const [gasError,  setGasError]  = useState(false);
+  const [theme,     setTheme]     = useState(() => {
+    if (typeof document !== "undefined") {
+      const attr = document.documentElement.getAttribute("data-theme");
+      if (attr === "light" || attr === "dark") return attr;
+    }
+    return "dark";
+  });
+
+  const toggleTheme = () => {
+    setTheme(prev => {
+      const next = prev === "dark" ? "light" : "dark";
+      try { localStorage.setItem("fleetos-theme", next); } catch(e) {}
+      if (typeof document !== "undefined") document.documentElement.setAttribute("data-theme", next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!GAS_URL) {
@@ -537,18 +603,18 @@ function App() {
     {id:"notifs",   label:"Notifikasi",icon:"bell",badge:unread},
   ];
 
-  return React.createElement("div",{style:{minHeight:"100vh",background:"#080C16",color:"#EDF1F7",fontFamily:"'Inter',system-ui,sans-serif"}},
+  return React.createElement("div",{style:{minHeight:"100vh",background:"var(--bg)",color:"var(--t1)",fontFamily:"'Inter',system-ui,sans-serif"}},
     React.createElement("style",null,CSS),
 
     loading && React.createElement("div",{style:{position:"fixed",top:0,left:0,right:0,height:2,zIndex:999,background:"rgba(0,184,224,0.15)"}},
-      React.createElement("div",{style:{height:"100%",width:"40%",background:"#00B8E0"}})
+      React.createElement("div",{style:{height:"100%",width:"40%",background:"var(--accent)"}})
     ),
 
-    GAS_URL && React.createElement("div",{className:"hide-m",style:{position:"fixed",bottom:16,right:16,zIndex:90,fontSize:11,fontWeight:600,padding:"4px 10px",borderRadius:7,background:gasError?"rgba(224,82,74,0.12)":gasReady?"rgba(31,174,110,0.12)":"rgba(214,154,31,0.12)",border:"1px solid "+(gasError?"rgba(224,82,74,0.3)":gasReady?"rgba(31,174,110,0.3)":"rgba(214,154,31,0.3)"),color:gasError?"#E0524A":gasReady?"#1FAE6E":"#D69A1F",pointerEvents:"none"}},
+    GAS_URL && React.createElement("div",{className:"hide-m",style:{position:"fixed",bottom:16,right:16,zIndex:90,fontSize:11,fontWeight:600,padding:"4px 10px",borderRadius:7,background:gasError?"rgba(224,82,74,0.12)":gasReady?"rgba(31,174,110,0.12)":"rgba(214,154,31,0.12)",border:"1px solid "+(gasError?"rgba(224,82,74,0.3)":gasReady?"rgba(31,174,110,0.3)":"rgba(214,154,31,0.3)"),color:gasError?"var(--danger)":gasReady?"var(--ok)":"var(--warn)",pointerEvents:"none"}},
       gasError?"Gagal terhubung":gasReady?"Tersinkron":"Memuat..."
     ),
 
-    gasError && React.createElement("div",{style:{position:"fixed",top:0,left:0,right:0,zIndex:200,background:"#E0524A",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:12,fontSize:13,color:"#fff",fontWeight:500,flexWrap:"wrap"}},
+    gasError && React.createElement("div",{style:{position:"fixed",top:0,left:0,right:0,zIndex:200,background:"var(--danger)",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:12,fontSize:13,color:"#fff",fontWeight:500,flexWrap:"wrap"}},
       React.createElement("span",null,"Tidak bisa terhubung ke Google Sheets."),
       React.createElement("span",{style:{opacity:.85}},"Cek GAS URL & pastikan deploy dengan akses \"Anyone\"."),
       React.createElement("button",{onClick:()=>window.open(GAS_URL+"?action=ping","_blank"),style:{background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.4)",color:"#fff",borderRadius:6,padding:"3px 12px",cursor:"pointer",fontSize:12,fontWeight:600}},"Tes Koneksi"),
@@ -556,15 +622,15 @@ function App() {
     ),
 
     // Sidebar
-    React.createElement("div",{className:"sidebar",style:{position:"fixed",left:0,top:0,bottom:0,width:216,background:"#080C16",borderRight:"1px solid rgba(255,255,255,0.06)",padding:"20px 13px",display:"flex",flexDirection:"column",zIndex:30}},
-      React.createElement("div",{style:{marginBottom:22,paddingBottom:16,borderBottom:"1px solid rgba(255,255,255,0.06)"}},
+    React.createElement("div",{className:"sidebar",style:{position:"fixed",left:0,top:0,bottom:0,width:216,background:"var(--bg)",borderRight:"1px solid var(--border-06)",padding:"20px 13px",display:"flex",flexDirection:"column",zIndex:30}},
+      React.createElement("div",{style:{marginBottom:22,paddingBottom:16,borderBottom:"1px solid var(--border-06)"}},
         React.createElement("div",{style:{display:"flex",alignItems:"center",gap:10}},
-          React.createElement("div",{style:{width:32,height:32,borderRadius:8,background:"#00B8E0",display:"flex",alignItems:"center",justifyContent:"center"}},
-            React.createElement(Icon,{d:IC.car,size:16,stroke:"#06101C",sw:2})
+          React.createElement("div",{style:{width:32,height:32,borderRadius:8,background:"var(--accent)",display:"flex",alignItems:"center",justifyContent:"center"}},
+            React.createElement(Icon,{d:IC.car,size:16,stroke:"var(--accent-on)",sw:2})
           ),
           React.createElement("div",null,
-            React.createElement("div",{style:{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:14,color:"#EDF1F7"}},"FleetOS"),
-            React.createElement("div",{style:{fontSize:10,color:"#4D5666"}},"Vehicle Manager")
+            React.createElement("div",{style:{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:14,color:"var(--t1)"}},"FleetOS"),
+            React.createElement("div",{style:{fontSize:10,color:"var(--t5)"}},"Vehicle Manager")
           )
         )
       ),
@@ -572,16 +638,27 @@ function App() {
         NAV.map(n => React.createElement("button",{key:n.id,className:"nav-item"+(page===n.id?" active":""),onClick:()=>setPage(n.id)},
           React.createElement("div",{style:{position:"relative",flexShrink:0}},
             React.createElement(Icon,{d:IC[n.icon],size:16}),
-            n.badge>0 && React.createElement("div",{style:{position:"absolute",top:-4,right:-4,width:13,height:13,borderRadius:"50%",background:"#E0524A",fontSize:8,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"#fff"}},n.badge)
+            n.badge>0 && React.createElement("div",{style:{position:"absolute",top:-4,right:-4,width:13,height:13,borderRadius:"50%",background:"var(--danger)",fontSize:8,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"#fff"}},n.badge)
           ),
           n.label
         ))
       ),
-      React.createElement("div",{style:{marginTop:"auto",paddingTop:13,borderTop:"1px solid rgba(255,255,255,0.06)",display:"flex",alignItems:"center",gap:9}},
-        React.createElement("div",{style:{width:28,height:28,borderRadius:7,background:"#131A2B",border:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#00B8E0"}},"A"),
-        React.createElement("div",null,
-          React.createElement("div",{style:{fontSize:12,fontWeight:600,color:"#EDF1F7"}},"Admin"),
-          React.createElement("div",{style:{fontSize:10,color:"#4D5666"}},"admin@fleet.id")
+      React.createElement("div",{style:{marginTop:"auto"}},
+        React.createElement("button",{onClick:toggleTheme,style:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:9,padding:"9px 12px",borderTop:"1px solid var(--border-06)",background:"none",border:"none",borderTopWidth:1,borderTopStyle:"solid",borderTopColor:"var(--border-06)",cursor:"pointer",width:"100%",fontFamily:"inherit"}},
+          React.createElement("div",{style:{display:"flex",alignItems:"center",gap:9}},
+            React.createElement(Icon,{d:theme==="dark"?IC.moon:IC.sun,size:15,stroke:"var(--t3)"}),
+            React.createElement("span",{style:{fontSize:12,fontWeight:500,color:"var(--t3)"}},theme==="dark"?"Mode Gelap":"Mode Terang")
+          ),
+          React.createElement("div",{style:{width:32,height:18,borderRadius:10,background:theme==="dark"?"var(--accent-dim)":"var(--surface-2)",border:"1px solid "+(theme==="dark"?"var(--border-strong)":"rgba(15,23,42,0.12)"),position:"relative",flexShrink:0,transition:"background .2s"}},
+            React.createElement("div",{style:{position:"absolute",top:1,left:theme==="dark"?16:1,width:14,height:14,borderRadius:"50%",background:"var(--accent)",transition:"left .2s"}})
+          )
+        ),
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:9,padding:"11px 12px 0"}},
+          React.createElement("div",{style:{width:28,height:28,borderRadius:7,background:"var(--surface-2)",border:"1px solid var(--border-08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--accent)"}},"A"),
+          React.createElement("div",null,
+            React.createElement("div",{style:{fontSize:12,fontWeight:600,color:"var(--t1)"}},"Admin"),
+            React.createElement("div",{style:{fontSize:10,color:"var(--t5)"}},"admin@fleet.id")
+          )
         )
       )
     ),
@@ -590,12 +667,12 @@ function App() {
     React.createElement("div",{className:"main",style:{marginLeft:216,padding:"22px 26px",minHeight:"100vh"}},
       React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:22}},
         React.createElement("div",null,
-          React.createElement("h1",{style:{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:19,color:"#EDF1F7"}},NAV.find(n=>n.id===page)?.label),
-          React.createElement("p",{style:{fontSize:12,color:"#4D5666",marginTop:2}},new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"}))
+          React.createElement("h1",{style:{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:19,color:"var(--t1)"}},NAV.find(n=>n.id===page)?.label),
+          React.createElement("p",{style:{fontSize:12,color:"var(--t5)",marginTop:2}},new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"}))
         ),
         React.createElement("button",{className:"btn btn-s btn-sm hide-m",onClick:()=>setPage("notifs"),style:{position:"relative"}},
           React.createElement(Icon,{d:IC.bell,size:15}),
-          unread>0 && React.createElement("div",{style:{position:"absolute",top:-4,right:-4,width:15,height:15,borderRadius:"50%",background:"#E0524A",fontSize:9,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"#fff"}},unread)
+          unread>0 && React.createElement("div",{style:{position:"absolute",top:-4,right:-4,width:15,height:15,borderRadius:"50%",background:"var(--danger)",fontSize:9,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"#fff"}},unread)
         )
       ),
       React.createElement("div",{className:"fade-in",key:page},
@@ -616,15 +693,15 @@ function App() {
       NAV.slice(0,5).map(n => React.createElement("button",{key:n.id,className:"mob-btn"+(page===n.id?" active":""),onClick:()=>setPage(n.id)},
         React.createElement("div",{style:{position:"relative"}},
           React.createElement(Icon,{d:IC[n.icon],size:19}),
-          n.badge>0 && React.createElement("div",{style:{position:"absolute",top:-4,right:-4,width:12,height:12,borderRadius:"50%",background:"#E0524A",fontSize:7,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"#fff"}},n.badge)
+          n.badge>0 && React.createElement("div",{style:{position:"absolute",top:-4,right:-4,width:12,height:12,borderRadius:"50%",background:"var(--danger)",fontSize:7,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"#fff"}},n.badge)
         ),
         React.createElement("span",null,n.label)
       ))
     ),
 
     toast && React.createElement("div",{className:"slide-in",style:{position:"fixed",top:20,right:20,zIndex:100,background:toast.type==="success"?"rgba(31,174,110,0.12)":"rgba(224,82,74,0.12)",border:"1px solid "+(toast.type==="success"?"rgba(31,174,110,0.35)":"rgba(224,82,74,0.35)"),borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",gap:10,maxWidth:300}},
-      React.createElement(Icon,{d:toast.type==="success"?IC.check:IC.alert,size:15,stroke:toast.type==="success"?"#1FAE6E":"#E0524A"}),
-      React.createElement("span",{style:{fontSize:13,fontWeight:500,color:"#EDF1F7"}},toast.msg)
+      React.createElement(Icon,{d:toast.type==="success"?IC.check:IC.alert,size:15,stroke:toast.type==="success"?"var(--ok)":"var(--danger)"}),
+      React.createElement("span",{style:{fontSize:13,fontWeight:500,color:"var(--t1)"}},toast.msg)
     )
   );
 }
@@ -659,16 +736,16 @@ function Dashboard({vehicles,claims,setPage}) {
       stats.map((s,i)=>React.createElement("div",{key:i,className:"scard"},
         React.createElement("div",{style:{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:12}},
           React.createElement("div",{style:{width:32,height:32,borderRadius:8,background:s.danger?"rgba(224,82,74,0.1)":"rgba(0,184,224,0.1)",display:"flex",alignItems:"center",justifyContent:"center"}},
-            React.createElement(Icon,{d:IC[s.icon],size:15,stroke:s.danger?"#E0524A":"#00B8E0"})
+            React.createElement(Icon,{d:IC[s.icon],size:15,stroke:s.danger?"var(--danger)":"var(--accent)"})
           ),
-          s.trend!==undefined && s.trend!==null && React.createElement("div",{style:{display:"flex",alignItems:"center",gap:3,fontSize:11,fontWeight:700,color:s.trend>0?"#E0524A":s.trend<0?"#1FAE6E":"#4D5666"}},
+          s.trend!==undefined && s.trend!==null && React.createElement("div",{style:{display:"flex",alignItems:"center",gap:3,fontSize:11,fontWeight:700,color:s.trend>0?"var(--danger)":s.trend<0?"var(--ok)":"var(--t5)"}},
             React.createElement(Icon,{d:s.trend>0?IC.arrowUp:s.trend<0?IC.arrowDown:IC.minus,size:11}),
             Math.abs(s.trend).toFixed(0),"%"
           )
         ),
-        React.createElement("div",{className:"num",style:{fontSize:s.value.toString().length>8?16:21,fontWeight:700,color:"#EDF1F7",marginBottom:3}},s.value),
-        React.createElement("div",{style:{fontSize:11,color:"#6B7588"}},s.label),
-        s.sub && React.createElement("div",{style:{fontSize:10,color:"#4D5666",marginTop:2}},s.sub)
+        React.createElement("div",{className:"num",style:{fontSize:s.value.toString().length>8?16:21,fontWeight:700,color:"var(--t1)",marginBottom:3}},s.value),
+        React.createElement("div",{style:{fontSize:11,color:"var(--t4)"}},s.label),
+        s.sub && React.createElement("div",{style:{fontSize:10,color:"var(--t5)",marginTop:2}},s.sub)
       ))
     ),
     React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 300px",gap:16}},
@@ -677,33 +754,33 @@ function Dashboard({vehicles,claims,setPage}) {
           React.createElement("h3",{style:{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:14}},"Claim Terbaru"),
           React.createElement("button",{className:"btn btn-s btn-sm",onClick:()=>setPage("claims")},"Lihat Semua")
         ),
-        recent.length===0 ? React.createElement("div",{style:{textAlign:"center",padding:"24px 0",color:"#4D5666",fontSize:13}},"Belum ada claim.")
+        recent.length===0 ? React.createElement("div",{style:{textAlign:"center",padding:"24px 0",color:"var(--t5)",fontSize:13}},"Belum ada claim.")
         : recent.map(c=>{
           const driver = getClaimDriver(c);
           const types  = getClaimTypes(c);
           return React.createElement("div",{key:c.id,className:"trow",style:{display:"flex",alignItems:"center",gap:12,padding:"10px 0"}},
-            React.createElement("div",{style:{width:3,height:30,borderRadius:2,background:TYPE_COL[types[0]]||"#4D5666",flexShrink:0}}),
+            React.createElement("div",{style:{width:3,height:30,borderRadius:2,background:TYPE_COL[types[0]]||"var(--t5)",flexShrink:0}}),
             React.createElement("div",{style:{flex:1,minWidth:0}},
-              React.createElement("div",{style:{fontSize:13,fontWeight:600,color:"#EDF1F7"}},types.join(", ")||"—"),
-              React.createElement("div",{style:{fontSize:11,color:"#4D5666"}},driver," · ",fmtDate(c.date))
+              React.createElement("div",{style:{fontSize:13,fontWeight:600,color:"var(--t1)"}},types.join(", ")||"—"),
+              React.createElement("div",{style:{fontSize:11,color:"var(--t5)"}},driver," · ",fmtDate(c.date))
             ),
-            React.createElement("div",{className:"num",style:{textAlign:"right",flexShrink:0,fontSize:13,fontWeight:700,color:"#EDF1F7"}},"Rp ",fmt(c.total||0))
+            React.createElement("div",{className:"num",style:{textAlign:"right",flexShrink:0,fontSize:13,fontWeight:700,color:"var(--t1)"}},"Rp ",fmt(c.total||0))
           );
         })
       ),
       React.createElement("div",{className:"card",style:{padding:18}},
         React.createElement("h3",{style:{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:14,marginBottom:13}},"Reminder Dokumen"),
         reminders.length===0
-          ? React.createElement("div",{style:{textAlign:"center",padding:"24px 0",color:"#4D5666"}},
-              React.createElement(Icon,{d:IC.check,size:26,stroke:"#1FAE6E"}),
+          ? React.createElement("div",{style:{textAlign:"center",padding:"24px 0",color:"var(--t5)"}},
+              React.createElement(Icon,{d:IC.check,size:26,stroke:"var(--ok)"}),
               React.createElement("div",{style:{marginTop:8,fontSize:12}},"Semua dokumen aman")
             )
           : reminders.map((r,i)=>{
               const col = urgCol(r.days);
-              return React.createElement("div",{key:i,style:{display:"flex",alignItems:"center",gap:9,padding:"9px 11px",background:r.days<=7?"rgba(224,82,74,0.06)":"rgba(255,255,255,0.02)",borderRadius:8,marginBottom:6,borderLeft:"2px solid "+col}},
+              return React.createElement("div",{key:i,style:{display:"flex",alignItems:"center",gap:9,padding:"9px 11px",background:r.days<=7?"rgba(224,82,74,0.06)":"var(--border-02)",borderRadius:8,marginBottom:6,borderLeft:"2px solid "+col}},
                 React.createElement("div",{style:{flex:1}},
-                  React.createElement("div",{style:{fontSize:12,fontWeight:600,color:"#EDF1F7"}},r.plate),
-                  React.createElement("div",{style:{fontSize:11,color:"#6B7588"}},r.type)
+                  React.createElement("div",{style:{fontSize:12,fontWeight:600,color:"var(--t1)"}},r.plate),
+                  React.createElement("div",{style:{fontSize:11,color:"var(--t4)"}},r.type)
                 ),
                 React.createElement("div",{style:{fontSize:12,fontWeight:700,color:col}},r.days<=0?"EXPIRED":`${r.days}h`)
               );
@@ -737,34 +814,34 @@ function Vehicles({vehicles,setVehicles,showToast}) {
   };
   return React.createElement("div",null,
     React.createElement("div",{style:{display:"flex",justifyContent:"flex-end",marginBottom:16}},
-      React.createElement("button",{className:"btn btn-p",onClick:()=>open(null)},React.createElement(Icon,{d:IC.plus,size:14,stroke:"#06101C"}),"Tambah Kendaraan")
+      React.createElement("button",{className:"btn btn-p",onClick:()=>open(null)},React.createElement(Icon,{d:IC.plus,size:14,stroke:"var(--accent-on)"}),"Tambah Kendaraan")
     ),
     React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:13}},
-      vehicles.length===0 && React.createElement("div",{style:{gridColumn:"1/-1",textAlign:"center",padding:"44px",color:"#4D5666",fontSize:13}},"Belum ada kendaraan."),
+      vehicles.length===0 && React.createElement("div",{style:{gridColumn:"1/-1",textAlign:"center",padding:"44px",color:"var(--t5)",fontSize:13}},"Belum ada kendaraan."),
       vehicles.map(v=>React.createElement("div",{key:v.id,className:"card",style:{padding:17,position:"relative"}},
-        React.createElement("div",{style:{position:"absolute",top:0,left:0,bottom:0,width:2.5,borderRadius:"12px 0 0 12px",background:v.status==="active"?"#1FAE6E":"#D69A1F"}}),
+        React.createElement("div",{style:{position:"absolute",top:0,left:0,bottom:0,width:2.5,borderRadius:"12px 0 0 12px",background:v.status==="active"?"var(--ok)":"var(--warn)"}}),
         React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}},
           React.createElement("div",null,
-            React.createElement("div",{className:"num",style:{fontWeight:700,fontSize:15,color:"#EDF1F7",letterSpacing:".03em"}},v.plate),
-            React.createElement("div",{style:{fontSize:11,color:"#6B7588",marginTop:2}},v.type," · ",v.year)
+            React.createElement("div",{className:"num",style:{fontWeight:700,fontSize:15,color:"var(--t1)",letterSpacing:".03em"}},v.plate),
+            React.createElement("div",{style:{fontSize:11,color:"var(--t4)",marginTop:2}},v.type," · ",v.year)
           ),
-          React.createElement("span",{className:"badge",style:{background:v.status==="active"?"rgba(31,174,110,0.1)":"rgba(214,154,31,0.1)",color:v.status==="active"?"#1FAE6E":"#D69A1F"}},v.status==="active"?"Active":"Maintenance")
+          React.createElement("span",{className:"badge",style:{background:v.status==="active"?"rgba(31,174,110,0.1)":"rgba(214,154,31,0.1)",color:v.status==="active"?"var(--ok)":"var(--warn)"}},v.status==="active"?"Active":"Maintenance")
         ),
         React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:13}},
           [["Driver",v.driver],["Dept",v.dept],["BBM",v.fuel],["Odometer",`${fmt(v.odometer)} km`]].map(([k,val])=>
             React.createElement("div",{key:k},
-              React.createElement("div",{style:{fontSize:10,color:"#4D5666"}},k),
-              React.createElement("div",{style:{fontSize:12,color:"#AEB8C9",fontWeight:500}},val||"-")
+              React.createElement("div",{style:{fontSize:10,color:"var(--t5)"}},k),
+              React.createElement("div",{style:{fontSize:12,color:"var(--t2)",fontWeight:500}},val||"-")
             )
           )
         ),
-        React.createElement("div",{style:{borderTop:"1px solid rgba(255,255,255,0.06)",paddingTop:11,marginBottom:12}},
+        React.createElement("div",{style:{borderTop:"1px solid var(--border-06)",paddingTop:11,marginBottom:12}},
           [["KIR",v.kir],["Service",v.service],["STNK",v.stnk]].map(([l,d])=>{
             const days=daysUntil(d); const col=urgCol(days);
             return React.createElement("div",{key:l,style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}},
-              React.createElement("span",{style:{fontSize:11,color:"#6B7588"}},l),
+              React.createElement("span",{style:{fontSize:11,color:"var(--t4)"}},l),
               React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6}},
-                React.createElement("span",{style:{fontSize:11,color:"#8A95A8"}},fmtDate(d)),
+                React.createElement("span",{style:{fontSize:11,color:"var(--t3)"}},fmtDate(d)),
                 React.createElement("span",{style:{fontSize:10,fontWeight:700,color:col}},days<=0?"EXP":`${days}h`)
               )
             );
@@ -785,18 +862,18 @@ function Vehicles({vehicles,setVehicles,showToast}) {
         React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}},
           [["Plat Nomor","plate","B 1234 XY",true],["Tipe Kendaraan","type","Toyota Avanza",true],["Tahun","year","2021",false],["Warna","color","Silver",false],["Odometer (km)","odometer","45000",false],["Driver (default)","driver","Nama Driver",true],["Departemen","dept","Operations",false]].map(([l,k,ph,full])=>
             React.createElement("div",{key:k,style:full?{gridColumn:"1/-1"}:{}},
-              React.createElement("label",{style:{fontSize:11,color:"#6B7588",fontWeight:500,display:"block",marginBottom:5}},l),
+              React.createElement("label",{style:{fontSize:11,color:"var(--t4)",fontWeight:500,display:"block",marginBottom:5}},l),
               React.createElement("input",{className:"inp",placeholder:ph,value:form[k]||"",onChange:e=>setForm(p=>({...p,[k]:e.target.value}))})
             )
           ),
           React.createElement("div",null,
-            React.createElement("label",{style:{fontSize:11,color:"#6B7588",fontWeight:500,display:"block",marginBottom:5}},"Jenis BBM"),
+            React.createElement("label",{style:{fontSize:11,color:"var(--t4)",fontWeight:500,display:"block",marginBottom:5}},"Jenis BBM"),
             React.createElement("select",{className:"inp",value:form.fuel,onChange:e=>setForm(p=>({...p,fuel:e.target.value}))},
               ["Pertalite","Pertamax","Pertamax Turbo","Solar","Dexlite"].map(x=>React.createElement("option",{key:x},x))
             )
           ),
           React.createElement("div",null,
-            React.createElement("label",{style:{fontSize:11,color:"#6B7588",fontWeight:500,display:"block",marginBottom:5}},"Status"),
+            React.createElement("label",{style:{fontSize:11,color:"var(--t4)",fontWeight:500,display:"block",marginBottom:5}},"Status"),
             React.createElement("select",{className:"inp",value:form.status,onChange:e=>setForm(p=>({...p,status:e.target.value}))},
               React.createElement("option",{value:"active"},"Active"),
               React.createElement("option",{value:"maintenance"},"Maintenance")
@@ -804,24 +881,24 @@ function Vehicles({vehicles,setVehicles,showToast}) {
           ),
           ...[["Jadwal KIR","kir"],["Jadwal Service","service"],["Jadwal STNK","stnk"]].map(([l,k])=>
             React.createElement("div",{key:k},
-              React.createElement("label",{style:{fontSize:11,color:"#6B7588",fontWeight:500,display:"block",marginBottom:5}},l),
+              React.createElement("label",{style:{fontSize:11,color:"var(--t4)",fontWeight:500,display:"block",marginBottom:5}},l),
               React.createElement("input",{type:"date",className:"inp",value:form[k]||"",onChange:e=>setForm(p=>({...p,[k]:e.target.value}))})
             )
           )
         ),
         React.createElement("div",{style:{display:"flex",gap:9,marginTop:20}},
           React.createElement("button",{className:"btn btn-s",style:{flex:1},onClick:()=>setShow(false)},"Batal"),
-          React.createElement("button",{className:"btn btn-p",style:{flex:1},onClick:save},React.createElement(Icon,{d:IC.check,size:14,stroke:"#06101C"}),"Simpan")
+          React.createElement("button",{className:"btn btn-p",style:{flex:1},onClick:save},React.createElement(Icon,{d:IC.check,size:14,stroke:"var(--accent-on)"}),"Simpan")
         )
       )
     ),
     confirmDel && React.createElement("div",{className:"overlay",onClick:e=>e.target===e.currentTarget&&setConfirmDel(null)},
       React.createElement("div",{className:"modal",style:{maxWidth:360,textAlign:"center"}},
         React.createElement("div",{style:{width:48,height:48,borderRadius:"50%",background:"rgba(224,82,74,0.1)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}},
-          React.createElement(Icon,{d:IC.trash,size:22,stroke:"#E0524A"})
+          React.createElement(Icon,{d:IC.trash,size:22,stroke:"var(--danger)"})
         ),
         React.createElement("h2",{style:{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:16,marginBottom:7}},"Hapus Kendaraan?"),
-        React.createElement("p",{style:{fontSize:12,color:"#6B7588",marginBottom:18,lineHeight:1.6}},"Data kendaraan ",React.createElement("b",{style:{color:"#EDF1F7"}},confirmDel.plate)," akan dihapus permanen."),
+        React.createElement("p",{style:{fontSize:12,color:"var(--t4)",marginBottom:18,lineHeight:1.6}},"Data kendaraan ",React.createElement("b",{style:{color:"var(--t1)"}},confirmDel.plate)," akan dihapus permanen."),
         React.createElement("div",{style:{display:"flex",gap:9}},
           React.createElement("button",{className:"btn btn-s",style:{flex:1},onClick:()=>setConfirmDel(null)},"Batal"),
           React.createElement("button",{className:"btn btn-d",style:{flex:1,justifyContent:"center",padding:"10px"},onClick:()=>del(confirmDel.id)},React.createElement(Icon,{d:IC.trash,size:13}),"Ya, Hapus")
@@ -883,20 +960,20 @@ function Claims({claims,setClaims,drivers,showToast,gasReady}) {
       ),
       React.createElement("div",{style:{flex:1}}),
       React.createElement("button",{className:"btn btn-p",onClick:()=>{setForm(blankForm());setShow(true);}},
-        React.createElement(Icon,{d:IC.plus,size:14,stroke:"#06101C"}),"Buat Claim"
+        React.createElement(Icon,{d:IC.plus,size:14,stroke:"var(--accent-on)"}),"Buat Claim"
       )
     ),
     React.createElement("div",{style:{display:"flex",gap:12,marginBottom:16,flexWrap:"wrap",alignItems:"center",padding:"11px 15px",background:"rgba(0,184,224,0.05)",border:"1px solid rgba(0,184,224,0.16)",borderRadius:10}},
       React.createElement("div",{style:{display:"flex",alignItems:"center",gap:7}},
-        React.createElement("span",{className:"num",style:{fontSize:13,fontWeight:700,color:"#00B8E0"}},filtered.length),
-        React.createElement("span",{style:{fontSize:12,color:"#6B7588"}},"Claim")
+        React.createElement("span",{className:"num",style:{fontSize:13,fontWeight:700,color:"var(--accent)"}},filtered.length),
+        React.createElement("span",{style:{fontSize:12,color:"var(--t4)"}},"Claim")
       ),
-      React.createElement("div",{style:{width:1,height:16,background:"rgba(255,255,255,0.08)"}}),
-      React.createElement("div",{style:{fontSize:12,color:"#6B7588"}},
-        "Total: ",React.createElement("span",{className:"num",style:{color:"#EDF1F7",fontWeight:700}},"Rp ",fmt(filtered.reduce((s,c)=>s+(c.total||0),0)))
+      React.createElement("div",{style:{width:1,height:16,background:"var(--border-08)"}}),
+      React.createElement("div",{style:{fontSize:12,color:"var(--t4)"}},
+        "Total: ",React.createElement("span",{className:"num",style:{color:"var(--t1)",fontWeight:700}},"Rp ",fmt(filtered.reduce((s,c)=>s+(c.total||0),0)))
       ),
-      React.createElement("div",{style:{width:1,height:16,background:"rgba(255,255,255,0.08)"}}),
-      React.createElement("div",{style:{fontSize:12,color:"#6B7588"}},
+      React.createElement("div",{style:{width:1,height:16,background:"var(--border-08)"}}),
+      React.createElement("div",{style:{fontSize:12,color:"var(--t4)"}},
         [...new Set(filtered.map(c=>getClaimDriver(c)).filter(Boolean))].length," driver aktif"
       )
     ),
@@ -904,14 +981,14 @@ function Claims({claims,setClaims,drivers,showToast,gasReady}) {
       React.createElement("div",{style:{overflowX:"auto"}},
         React.createElement("table",{style:{width:"100%",borderCollapse:"collapse"}},
           React.createElement("thead",null,
-            React.createElement("tr",{style:{borderBottom:"1px solid rgba(255,255,255,0.07)"}},
+            React.createElement("tr",{style:{borderBottom:"1px solid var(--border)"}},
               ["","Tanggal","Driver","Rincian Claim","Total",""].map(h=>
-                React.createElement("th",{key:h,style:{padding:"11px 14px",textAlign:"left",fontSize:11,fontWeight:600,color:"#4D5666",whiteSpace:"nowrap"}},h)
+                React.createElement("th",{key:h,style:{padding:"11px 14px",textAlign:"left",fontSize:11,fontWeight:600,color:"var(--t5)",whiteSpace:"nowrap"}},h)
               )
             )
           ),
           React.createElement("tbody",null,
-            filtered.length===0 ? React.createElement("tr",null,React.createElement("td",{colSpan:6,style:{padding:"32px",textAlign:"center",color:"#4D5666",fontSize:13}},"Tidak ada claim."))
+            filtered.length===0 ? React.createElement("tr",null,React.createElement("td",{colSpan:6,style:{padding:"32px",textAlign:"center",color:"var(--t5)",fontSize:13}},"Tidak ada claim."))
             : filtered.map(c=>{
                 const items  = getClaimItems(c);
                 const types  = getClaimTypes(c);
@@ -920,42 +997,42 @@ function Claims({claims,setClaims,drivers,showToast,gasReady}) {
                 return React.createElement(React.Fragment,{key:c.id},
                   React.createElement("tr",{className:"trow",style:{cursor:"pointer",background:isExp?"rgba(0,184,224,0.03)":"transparent"},onClick:()=>togExpand(c.id)},
                     React.createElement("td",{style:{padding:"11px 8px 11px 14px",width:20}},
-                      React.createElement("div",{style:{color:"#4D5666",transition:"transform .15s",transform:isExp?"rotate(180deg)":"rotate(0)"}},React.createElement(Icon,{d:IC.chevDown,size:14}))
+                      React.createElement("div",{style:{color:"var(--t5)",transition:"transform .15s",transform:isExp?"rotate(180deg)":"rotate(0)"}},React.createElement(Icon,{d:IC.chevDown,size:14}))
                     ),
-                    React.createElement("td",{style:{padding:"11px 14px",fontSize:12,color:"#8A95A8",whiteSpace:"nowrap"}},fmtDate(c.date)),
-                    React.createElement("td",{style:{padding:"11px 14px",fontSize:13,fontWeight:600,color:"#EDF1F7"}},driver),
+                    React.createElement("td",{style:{padding:"11px 14px",fontSize:12,color:"var(--t3)",whiteSpace:"nowrap"}},fmtDate(c.date)),
+                    React.createElement("td",{style:{padding:"11px 14px",fontSize:13,fontWeight:600,color:"var(--t1)"}},driver),
                     React.createElement("td",{style:{padding:"11px 14px"}},
                       React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:5,marginBottom:items.length>1?4:0}},
-                        types.map(t=>React.createElement("span",{key:t,className:"tag",style:{color:TYPE_COL[t]||"#8A95A8"}},t))
+                        types.map(t=>React.createElement("span",{key:t,className:"tag",style:{color:TYPE_COL[t]||"var(--t3)"}},t))
                       ),
-                      items.length>1 && React.createElement("div",{style:{fontSize:11,color:"#4D5666"}},items.length+" item")
+                      items.length>1 && React.createElement("div",{style:{fontSize:11,color:"var(--t5)"}},items.length+" item")
                     ),
-                    React.createElement("td",{className:"num",style:{padding:"11px 14px",fontSize:13,fontWeight:700,color:"#EDF1F7",whiteSpace:"nowrap"}},"Rp ",fmt(c.total||0)),
+                    React.createElement("td",{className:"num",style:{padding:"11px 14px",fontSize:13,fontWeight:700,color:"var(--t1)",whiteSpace:"nowrap"}},"Rp ",fmt(c.total||0)),
                     React.createElement("td",{style:{padding:"11px 14px"}},
                       React.createElement("button",{className:"btn btn-d",style:{padding:"5px 8px"},onClick:e=>{e.stopPropagation();setConfirmDel(c);}},React.createElement(Icon,{d:IC.trash,size:12}))
                     )
                   ),
                   isExp && React.createElement("tr",{key:c.id+"-detail"},
-                    React.createElement("td",{colSpan:6,style:{padding:"0 14px 14px 42px",background:"rgba(0,184,224,0.02)",borderBottom:"1px solid rgba(255,255,255,0.05)"}},
+                    React.createElement("td",{colSpan:6,style:{padding:"0 14px 14px 42px",background:"rgba(0,184,224,0.02)",borderBottom:"1px solid var(--border-05)"}},
                       React.createElement("div",{className:"card-flat",style:{overflow:"hidden",marginTop:4,maxWidth:480}},
                         React.createElement("table",{style:{width:"100%",borderCollapse:"collapse",fontSize:12}},
-                          React.createElement("thead",null,React.createElement("tr",{style:{background:"rgba(255,255,255,0.03)"}},
-                            ["Jenis","Rincian","Nominal"].map(h=>React.createElement("th",{key:h,style:{padding:"7px 12px",textAlign:h==="Nominal"?"right":"left",fontSize:10,fontWeight:600,color:"#4D5666",textTransform:"uppercase",letterSpacing:"0.4px"}},h))
+                          React.createElement("thead",null,React.createElement("tr",{style:{background:"var(--border-03)"}},
+                            ["Jenis","Rincian","Nominal"].map(h=>React.createElement("th",{key:h,style:{padding:"7px 12px",textAlign:h==="Nominal"?"right":"left",fontSize:10,fontWeight:600,color:"var(--t5)",textTransform:"uppercase",letterSpacing:"0.4px"}},h))
                           )),
                           React.createElement("tbody",null,items.map((item,idx)=>
-                            React.createElement("tr",{key:idx,style:{borderTop:"1px solid rgba(255,255,255,0.05)"}},
-                              React.createElement("td",{style:{padding:"7px 12px"}},React.createElement("span",{className:"tag",style:{color:TYPE_COL[item.type]||"#8A95A8"}},item.type||"—")),
-                              React.createElement("td",{style:{padding:"7px 12px",fontFamily:"monospace",color:"#8A95A8",fontSize:11}},item.expr||"-"),
-                              React.createElement("td",{className:"num",style:{padding:"7px 12px",textAlign:"right",fontWeight:600,color:"#EDF1F7"}},"Rp ",fmt(item.total||0))
+                            React.createElement("tr",{key:idx,style:{borderTop:"1px solid var(--border-05)"}},
+                              React.createElement("td",{style:{padding:"7px 12px"}},React.createElement("span",{className:"tag",style:{color:TYPE_COL[item.type]||"var(--t3)"}},item.type||"—")),
+                              React.createElement("td",{style:{padding:"7px 12px",fontFamily:"monospace",color:"var(--t3)",fontSize:11}},item.expr||"-"),
+                              React.createElement("td",{className:"num",style:{padding:"7px 12px",textAlign:"right",fontWeight:600,color:"var(--t1)"}},"Rp ",fmt(item.total||0))
                             )
                           )),
                           React.createElement("tfoot",null,React.createElement("tr",{style:{borderTop:"1px solid rgba(0,184,224,0.18)",background:"rgba(0,184,224,0.04)"}},
-                            React.createElement("td",{colSpan:2,style:{padding:"8px 12px",fontSize:12,fontWeight:700,color:"#AEB8C9"}},"TOTAL"),
-                            React.createElement("td",{className:"num",style:{padding:"8px 12px",textAlign:"right",fontWeight:800,fontSize:13,color:"#00B8E0"}},"Rp ",fmt(c.total||0))
+                            React.createElement("td",{colSpan:2,style:{padding:"8px 12px",fontSize:12,fontWeight:700,color:"var(--t2)"}},"TOTAL"),
+                            React.createElement("td",{className:"num",style:{padding:"8px 12px",textAlign:"right",fontWeight:800,fontSize:13,color:"var(--accent)"}},"Rp ",fmt(c.total||0))
                           ))
                         )
                       ),
-                      c.note && React.createElement("div",{style:{marginTop:8,fontSize:11,color:"#6B7588",fontStyle:"italic"}},"Catatan: ",React.createElement("span",{style:{color:"#8A95A8"}},c.note))
+                      c.note && React.createElement("div",{style:{marginTop:8,fontSize:11,color:"var(--t4)",fontStyle:"italic"}},"Catatan: ",React.createElement("span",{style:{color:"var(--t3)"}},c.note))
                     )
                   )
                 );
@@ -969,17 +1046,17 @@ function Claims({claims,setClaims,drivers,showToast,gasReady}) {
         React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}},
           React.createElement("div",null,
             React.createElement("h2",{style:{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:17}},"Buat Claim"),
-            React.createElement("p",{style:{fontSize:12,color:"#4D5666",marginTop:2}},"Bisa input multiple jenis sekaligus")
+            React.createElement("p",{style:{fontSize:12,color:"var(--t5)",marginTop:2}},"Bisa input multiple jenis sekaligus")
           ),
           React.createElement("button",{className:"btn btn-s btn-sm",style:{padding:"6px 9px"},onClick:()=>setShow(false)},React.createElement(Icon,{d:IC.x,size:14}))
         ),
         React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}},
           React.createElement("div",null,
-            React.createElement("label",{style:{fontSize:11,color:"#6B7588",fontWeight:600,display:"block",marginBottom:6}},"TANGGAL"),
+            React.createElement("label",{style:{fontSize:11,color:"var(--t4)",fontWeight:600,display:"block",marginBottom:6}},"TANGGAL"),
             React.createElement("input",{type:"date",className:"inp",value:form.date,onChange:e=>setForm(p=>({...p,date:e.target.value}))})
           ),
           React.createElement("div",null,
-            React.createElement("label",{style:{fontSize:11,color:"#6B7588",fontWeight:600,display:"block",marginBottom:6}},"DRIVER"),
+            React.createElement("label",{style:{fontSize:11,color:"var(--t4)",fontWeight:600,display:"block",marginBottom:6}},"DRIVER"),
             React.createElement("select",{className:"inp",value:form.driver,onChange:e=>setForm(p=>({...p,driver:e.target.value}))},
               React.createElement("option",{value:""},"Pilih Driver"),
               driverList.map(d=>React.createElement("option",{key:d,value:d},d))
@@ -988,12 +1065,12 @@ function Claims({claims,setClaims,drivers,showToast,gasReady}) {
         ),
         React.createElement("div",{style:{marginBottom:14}},
           React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:9}},
-            React.createElement("label",{style:{fontSize:11,color:"#6B7588",fontWeight:600}},"RINCIAN CLAIM"),
+            React.createElement("label",{style:{fontSize:11,color:"var(--t4)",fontWeight:600}},"RINCIAN CLAIM"),
             React.createElement("button",{className:"btn btn-s btn-sm",style:{fontSize:11},onClick:addItem},React.createElement(Icon,{d:IC.plus,size:12}),"Tambah Baris")
           ),
           React.createElement("div",{style:{display:"grid",gridTemplateColumns:"126px 1fr 26px",gap:8,padding:"0 2px",marginBottom:6}},
-            React.createElement("div",{style:{fontSize:10,color:"#4D5666",fontWeight:600}},"Jenis"),
-            React.createElement("div",{style:{fontSize:10,color:"#4D5666",fontWeight:600}},"Nominal"),
+            React.createElement("div",{style:{fontSize:10,color:"var(--t5)",fontWeight:600}},"Jenis"),
+            React.createElement("div",{style:{fontSize:10,color:"var(--t5)",fontWeight:600}},"Nominal"),
             React.createElement("div",null)
           ),
           React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:8}},
@@ -1005,7 +1082,7 @@ function Claims({claims,setClaims,drivers,showToast,gasReady}) {
                 ),
                 React.createElement("div",{style:{position:"relative"}},
                   React.createElement("input",{className:"inp",style:{paddingRight:item.expr&&item.expr.trim()?116:13,fontFamily:"'Space Grotesk',monospace",fontSize:12},placeholder:"0 atau 50000+30000",value:item.expr,onChange:e=>updateItem(item.id,"expr",e.target.value)}),
-                  item.expr&&item.expr.trim() && React.createElement("span",{style:{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:11,fontWeight:700,color:err?"#E0524A":"#00B8E0",pointerEvents:"none",whiteSpace:"nowrap"}},err?"invalid":"= Rp "+fmt(res))
+                  item.expr&&item.expr.trim() && React.createElement("span",{style:{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:11,fontWeight:700,color:err?"var(--danger)":"var(--accent)",pointerEvents:"none",whiteSpace:"nowrap"}},err?"invalid":"= Rp "+fmt(res))
                 ),
                 React.createElement("button",{className:"btn btn-d",style:{padding:"7px",justifyContent:"center",opacity:form.items.length===1?0.25:1},onClick:()=>form.items.length>1&&removeItem(item.id)},React.createElement(Icon,{d:IC.x,size:11}))
               );
@@ -1013,26 +1090,26 @@ function Claims({claims,setClaims,drivers,showToast,gasReady}) {
           )
         ),
         React.createElement("div",{style:{marginBottom:16}},
-          React.createElement("label",{style:{fontSize:11,color:"#6B7588",fontWeight:600,display:"block",marginBottom:6}},"CATATAN (opsional)"),
+          React.createElement("label",{style:{fontSize:11,color:"var(--t4)",fontWeight:600,display:"block",marginBottom:6}},"CATATAN (opsional)"),
           React.createElement("input",{className:"inp",placeholder:"Keterangan tambahan...",value:form.note,onChange:e=>setForm(p=>({...p,note:e.target.value}))})
         ),
         React.createElement("div",{style:{background:"rgba(0,184,224,0.04)",border:"1px solid rgba(0,184,224,0.18)",borderRadius:10,padding:"13px 16px",marginBottom:16}},
-          React.createElement("div",{style:{fontSize:11,color:"#6B7588",fontWeight:600,marginBottom:9}},"RINGKASAN"),
+          React.createElement("div",{style:{fontSize:11,color:"var(--t4)",fontWeight:600,marginBottom:9}},"RINGKASAN"),
           form.items.map(item=>{const res=evalExpr(item.expr);return res>0?React.createElement("div",{key:item.id,style:{display:"flex",justifyContent:"space-between",marginBottom:6}},
-            React.createElement("span",{className:"tag",style:{color:TYPE_COL[item.type]||"#8A95A8"}},item.type),
-            React.createElement("span",{className:"num",style:{fontSize:12,color:"#EDF1F7",fontWeight:500}},"Rp ",fmt(res))
+            React.createElement("span",{className:"tag",style:{color:TYPE_COL[item.type]||"var(--t3)"}},item.type),
+            React.createElement("span",{className:"num",style:{fontSize:12,color:"var(--t1)",fontWeight:500}},"Rp ",fmt(res))
           ):null;}),
           React.createElement("div",{style:{borderTop:"1px solid rgba(0,184,224,0.18)",marginTop:9,paddingTop:9,display:"flex",justifyContent:"space-between",alignItems:"center"}},
-            React.createElement("span",{style:{fontSize:13,fontWeight:700,color:"#AEB8C9"}},"TOTAL"),
-            React.createElement("span",{className:"num",style:{fontWeight:800,fontSize:20,color:grandTotal>0?"#00B8E0":"#374151"}},grandTotal>0?"Rp "+fmt(grandTotal):"—")
+            React.createElement("span",{style:{fontSize:13,fontWeight:700,color:"var(--t2)"}},"TOTAL"),
+            React.createElement("span",{className:"num",style:{fontWeight:800,fontSize:20,color:grandTotal>0?"var(--accent)":"var(--t5)"}},grandTotal>0?"Rp "+fmt(grandTotal):"—")
           )
         ),
         React.createElement("div",{style:{display:"flex",gap:9}},
           React.createElement("button",{className:"btn btn-s",style:{flex:1},onClick:()=>setShow(false)},"Batal"),
           React.createElement("button",{className:"btn btn-p",style:{flex:2,opacity:canSave&&!submitting?1:0.4,cursor:canSave&&!submitting?"pointer":"not-allowed"},onClick:save},
             submitting ? React.createElement("span",{style:{display:"flex",alignItems:"center",gap:7}},
-              React.createElement("span",{style:{width:12,height:12,borderRadius:"50%",border:"2px solid #06101C",borderTopColor:"transparent",animation:"spin .7s linear infinite",display:"inline-block"}}),"Mengirim...")
-            : React.createElement(React.Fragment,null,React.createElement(Icon,{d:IC.check,size:14,stroke:"#06101C"}),"Submit Claim")
+              React.createElement("span",{style:{width:12,height:12,borderRadius:"50%",border:"2px solid var(--accent-on)",borderTopColor:"transparent",animation:"spin .7s linear infinite",display:"inline-block"}}),"Mengirim...")
+            : React.createElement(React.Fragment,null,React.createElement(Icon,{d:IC.check,size:14,stroke:"var(--accent-on)"}),"Submit Claim")
           )
         )
       )
@@ -1040,10 +1117,10 @@ function Claims({claims,setClaims,drivers,showToast,gasReady}) {
     confirmDel && React.createElement("div",{className:"overlay",onClick:e=>e.target===e.currentTarget&&setConfirmDel(null)},
       React.createElement("div",{className:"modal",style:{maxWidth:360,textAlign:"center"}},
         React.createElement("div",{style:{width:48,height:48,borderRadius:"50%",background:"rgba(224,82,74,0.1)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}},
-          React.createElement(Icon,{d:IC.trash,size:22,stroke:"#E0524A"})
+          React.createElement(Icon,{d:IC.trash,size:22,stroke:"var(--danger)"})
         ),
         React.createElement("h2",{style:{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:16,marginBottom:7}},"Hapus Claim?"),
-        React.createElement("p",{style:{fontSize:12,color:"#6B7588",marginBottom:18,lineHeight:1.6}},"Claim senilai ",React.createElement("b",{style:{color:"#EDF1F7"}},"Rp "+fmt(confirmDel.total||0))," dari ",getClaimDriver(confirmDel)," akan dihapus permanen."),
+        React.createElement("p",{style:{fontSize:12,color:"var(--t4)",marginBottom:18,lineHeight:1.6}},"Claim senilai ",React.createElement("b",{style:{color:"var(--t1)"}},"Rp "+fmt(confirmDel.total||0))," dari ",getClaimDriver(confirmDel)," akan dihapus permanen."),
         React.createElement("div",{style:{display:"flex",gap:9}},
           React.createElement("button",{className:"btn btn-s",style:{flex:1},onClick:()=>setConfirmDel(null)},"Batal"),
           React.createElement("button",{className:"btn btn-d",style:{flex:1,justifyContent:"center",padding:"10px"},onClick:()=>del(confirmDel.id)},React.createElement(Icon,{d:IC.trash,size:13}),"Ya, Hapus")
@@ -1076,35 +1153,73 @@ function GasStations({ stations, setStations, showToast }) {
   const blankForm = () => ({ name:"", address:"", lat:"", lng:"", fuels: FUEL_TYPES_LIST.map(f=>({type:f,available:true})), notes:"" });
   const [form, setForm] = useState(blankForm);
 
+  const setMapEl = useCallback((el) => { mapElRef.current = el; }, []);
+
   // ── Init Leaflet map once ──
+  // Guarded against a real-world race condition: the Leaflet CDN script can
+  // still be downloading when this component first mounts (e.g. slow
+  // connection, or user navigates to this page very quickly after load).
+  // Previously this effect ran once with deps:[] and simply gave up if
+  // window.L wasn't ready yet, leaving the map permanently blank with no
+  // explanation. Now it retries briefly, and surfaces a clear toast if
+  // Leaflet genuinely fails to load instead of failing silently.
   useEffect(() => {
-    if (!window.L || mapRef.current) return;
-    const map = window.L.map(mapElRef.current, {
-      center: MAP_DEFAULT_CENTER,
-      zoom: MAP_DEFAULT_ZOOM,
-      zoomControl: true,
-    });
-    window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      subdomains: 'abcd',
-      maxZoom: 19,
-    }).addTo(map);
+    if (mapRef.current) return;
+    let cancelled = false;
+    let attempts = 0;
 
-    map.on('click', (e) => {
-      if (!placingRef.current) return;
-      setPendingLatLng({ lat: e.latlng.lat, lng: e.latlng.lng });
-      setEditing(null);
-      setForm({ ...blankForm(), lat: e.latlng.lat.toFixed(6), lng: e.latlng.lng.toFixed(6) });
-      setShowForm(true);
-      setPlacing(false);
-      placingRef.current = false;
-      map.getContainer().classList.remove('crosshair-cursor');
-    });
+    function tryInit() {
+      if (cancelled) return;
+      if (!window.L) {
+        attempts++;
+        if (attempts > 40) { // ~10s of retrying at 250ms
+          showToast("Gagal memuat peta (Leaflet tidak termuat). Cek koneksi internet lalu refresh halaman.", "error");
+          return;
+        }
+        setTimeout(tryInit, 250);
+        return;
+      }
+      if (!mapElRef.current) {
+        // DOM node not attached yet on this tick — retry shortly.
+        attempts++;
+        if (attempts > 40) return;
+        setTimeout(tryInit, 250);
+        return;
+      }
+      try {
+        const map = window.L.map(mapElRef.current, {
+          center: MAP_DEFAULT_CENTER,
+          zoom: MAP_DEFAULT_ZOOM,
+          zoomControl: true,
+        });
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          subdomains: 'abc',
+          maxZoom: 19,
+          className: 'fleetos-map-tiles',
+        }).addTo(map);
 
-    mapRef.current = map;
-    setMapReady(true);
+        map.on('click', (e) => {
+          if (!placingRef.current) return;
+          setPendingLatLng({ lat: e.latlng.lat, lng: e.latlng.lng });
+          setEditing(null);
+          setForm({ ...blankForm(), lat: e.latlng.lat.toFixed(6), lng: e.latlng.lng.toFixed(6) });
+          setShowForm(true);
+          setPlacing(false);
+          placingRef.current = false;
+          map.getContainer().classList.remove('crosshair-cursor');
+        });
 
-    return () => { /* keep map alive across re-renders within this page session */ };
+        mapRef.current = map;
+        setMapReady(true);
+      } catch (err) {
+        console.error("Leaflet map init error:", err);
+        showToast("Terjadi kesalahan saat memuat peta: " + err.message, "error");
+      }
+    }
+
+    tryInit();
+    return () => { cancelled = true; };
   }, []);
 
   // ── Sync placing mode flag into ref (so the click handler closure sees latest value) ──
@@ -1141,15 +1256,15 @@ function GasStations({ stations, setStations, showToast }) {
       const availableFuels = (s.fuels||[]).filter(f=>f.available).map(f=>f.type);
       const popupHtml = `
         <div style="min-width:180px">
-          <div style="font-weight:700;font-size:13px;color:#EDF1F7;margin-bottom:3px">${escapeHtml(s.name)}</div>
-          ${s.address ? `<div style="font-size:11px;color:#8A95A8;margin-bottom:6px">${escapeHtml(s.address)}</div>` : ''}
-          <div style="font-size:10px;color:#6B7588;margin-bottom:3px">BBM TERSEDIA</div>
+          <div style="font-weight:700;font-size:13px;color:var(--t1);margin-bottom:3px">${escapeHtml(s.name)}</div>
+          ${s.address ? `<div style="font-size:11px;color:var(--t3);margin-bottom:6px">${escapeHtml(s.address)}</div>` : ''}
+          <div style="font-size:10px;color:var(--t4);margin-bottom:3px">BBM TERSEDIA</div>
           <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
-            ${availableFuels.length ? availableFuels.map(f=>`<span style="font-size:10px;padding:2px 7px;border-radius:5px;background:rgba(0,184,224,0.14);color:#00B8E0;font-weight:600">${escapeHtml(f)}</span>`).join('') : '<span style="font-size:11px;color:#4D5666">Belum diisi</span>'}
+            ${availableFuels.length ? availableFuels.map(f=>`<span style="font-size:10px;padding:2px 7px;border-radius:5px;background:rgba(0,184,224,0.14);color:var(--accent);font-weight:600">${escapeHtml(f)}</span>`).join('') : '<span style="font-size:11px;color:var(--t5)">Belum diisi</span>'}
           </div>
           <div style="display:flex;gap:6px">
-            <button data-action="edit" data-id="${id}" style="flex:1;font-size:11px;font-weight:600;padding:5px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.12);background:#131A2B;color:#AEB8C9;cursor:pointer">Edit</button>
-            <button data-action="del" data-id="${id}" style="font-size:11px;font-weight:600;padding:5px 8px;border-radius:6px;border:1px solid rgba(224,82,74,0.3);background:rgba(224,82,74,0.1);color:#E0524A;cursor:pointer">Hapus</button>
+            <button data-action="edit" data-id="${id}" style="flex:1;font-size:11px;font-weight:600;padding:5px 8px;border-radius:6px;border:1px solid var(--border-12);background:var(--surface-2);color:var(--t2);cursor:pointer">Edit</button>
+            <button data-action="del" data-id="${id}" style="font-size:11px;font-weight:600;padding:5px 8px;border-radius:6px;border:1px solid rgba(224,82,74,0.3);background:rgba(224,82,74,0.1);color:var(--danger);cursor:pointer">Hapus</button>
           </div>
         </div>`;
 
@@ -1249,21 +1364,28 @@ function GasStations({ stations, setStations, showToast }) {
   };
 
   // ── Address search via Nominatim (OpenStreetMap), debounced ──
+  const [searchError, setSearchError] = useState(false);
   useEffect(() => {
-    if (!search.trim() || search.trim().length < 3) { setSearchResults([]); return; }
+    if (!search.trim() || search.trim().length < 3) { setSearchResults([]); setSearchError(false); return; }
+    const controller = new AbortController();
     const handle = setTimeout(async () => {
       setSearching(true);
+      setSearchError(false);
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(search)}`);
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(search)}`, { signal: controller.signal });
+        if (!res.ok) throw new Error("HTTP " + res.status);
         const json = await res.json();
         setSearchResults(Array.isArray(json) ? json : []);
       } catch (e) {
-        setSearchResults([]);
+        if (e.name !== "AbortError") {
+          setSearchResults([]);
+          setSearchError(true);
+        }
       } finally {
-        setSearching(false);
+        if (!controller.signal.aborted) setSearching(false);
       }
     }, 600);
-    return () => clearTimeout(handle);
+    return () => { clearTimeout(handle); controller.abort(); };
   }, [search]);
 
   const pickSearchResult = (r) => {
@@ -1277,34 +1399,37 @@ function GasStations({ stations, setStations, showToast }) {
     React.createElement("div", { style:{ display:"flex", gap:9, marginBottom:14, flexWrap:"wrap", alignItems:"center" } },
       placing
         ? React.createElement(React.Fragment, null,
-            React.createElement("div", { style:{ display:"flex", alignItems:"center", gap:8, padding:"8px 14px", background:"rgba(214,154,31,0.1)", border:"1px solid rgba(214,154,31,0.3)", borderRadius:9, fontSize:12, color:"#D69A1F", fontWeight:600 } },
+            React.createElement("div", { style:{ display:"flex", alignItems:"center", gap:8, padding:"8px 14px", background:"rgba(214,154,31,0.1)", border:"1px solid rgba(214,154,31,0.3)", borderRadius:9, fontSize:12, color:"var(--warn)", fontWeight:600 } },
               React.createElement(Icon, { d:IC.pin, size:14 }), "Klik di peta untuk menandai lokasi..."
             ),
             React.createElement("button", { className:"btn btn-s btn-sm", onClick:cancelPlacing }, "Batal")
           )
-        : React.createElement("button", { className:"btn btn-p", onClick:startPlacing }, React.createElement(Icon,{d:IC.target,size:14,stroke:"#06101C"}), "Tandai di Peta"),
+        : React.createElement("button", { className:"btn btn-p", onClick:startPlacing }, React.createElement(Icon,{d:IC.target,size:14,stroke:"var(--accent-on)"}), "Tandai di Peta"),
       React.createElement("button", { className:"btn btn-s", onClick:openManualAdd }, React.createElement(Icon,{d:IC.plus,size:14}), "Input Manual"),
       React.createElement("div", { style:{ flex:1 } }),
-      React.createElement("div", { style:{ fontSize:12, color:"#6B7588" } }, stations.length, " SPBU tersimpan")
+      React.createElement("div", { style:{ fontSize:12, color:"var(--t4)" } }, stations.length, " SPBU tersimpan")
     ),
 
     React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 280px", gap:14 } },
 
-      // Map panel
-      React.createElement("div", { className:"card", style:{ overflow:"hidden", height:560, position:"relative" } },
-        React.createElement("div", { ref: el => { mapElRef.current = el; }, style:{ width:"100%", height:"100%" } })
+      // Map panel — explicit z-index:0 establishes a stacking context capped
+      // well below .overlay (z-index:2000), so Leaflet's internal panes
+      // (which use z-index up to ~1000) can never visually cover the
+      // add/edit form modal, no matter how Leaflet manages its own layers.
+      React.createElement("div", { className:"card", style:{ overflow:"hidden", height:560, position:"relative", zIndex:0, isolation:"isolate" } },
+        React.createElement("div", { ref: setMapEl, style:{ width:"100%", height:"100%" } })
       ),
 
       // Sidebar list
       React.createElement("div", { className:"card", style:{ display:"flex", flexDirection:"column", height:560, overflow:"hidden" } },
-        React.createElement("div", { style:{ padding:"13px 15px", borderBottom:"1px solid rgba(255,255,255,0.06)", display:"flex", alignItems:"center", gap:8 } },
-          React.createElement(Icon, { d:IC.list, size:14, stroke:"#6B7588" }),
+        React.createElement("div", { style:{ padding:"13px 15px", borderBottom:"1px solid var(--border-06)", display:"flex", alignItems:"center", gap:8 } },
+          React.createElement(Icon, { d:IC.list, size:14, stroke:"var(--t4)" }),
           React.createElement("h3", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, fontSize:13 } }, "Daftar SPBU")
         ),
         React.createElement("div", { style:{ flex:1, overflowY:"auto", padding:8 } },
           stations.length===0
-            ? React.createElement("div", { style:{ textAlign:"center", padding:"40px 14px", color:"#4D5666" } },
-                React.createElement(Icon, { d:IC.pin, size:26, stroke:"#374151" }),
+            ? React.createElement("div", { style:{ textAlign:"center", padding:"40px 14px", color:"var(--t5)" } },
+                React.createElement(Icon, { d:IC.pin, size:26, stroke:"var(--t5)" }),
                 React.createElement("div", { style:{ marginTop:10, fontSize:12, lineHeight:1.6 } }, "Belum ada SPBU. Klik \"Tandai di Peta\" atau \"Input Manual\" untuk menambahkan.")
               )
             : stations.map(s => {
@@ -1313,9 +1438,9 @@ function GasStations({ stations, setStations, showToast }) {
                   style:{ padding:"10px 11px", borderRadius:9, cursor:"pointer", marginBottom:5,
                     background: selectedId===s.id ? "rgba(0,184,224,0.08)" : "transparent",
                     border: selectedId===s.id ? "1px solid rgba(0,184,224,0.25)" : "1px solid transparent" } },
-                  React.createElement("div", { style:{ fontSize:12.5, fontWeight:600, color:"#EDF1F7", marginBottom:2 } }, s.name),
-                  s.address && React.createElement("div", { style:{ fontSize:10.5, color:"#6B7588", marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" } }, s.address),
-                  React.createElement("div", { style:{ fontSize:10, color: availCount>0 ? "#1FAE6E" : "#4D5666" } }, availCount>0 ? `${availCount} jenis BBM tersedia` : "Jenis BBM belum diisi")
+                  React.createElement("div", { style:{ fontSize:12.5, fontWeight:600, color:"var(--t1)", marginBottom:2 } }, s.name),
+                  s.address && React.createElement("div", { style:{ fontSize:10.5, color:"var(--t4)", marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" } }, s.address),
+                  React.createElement("div", { style:{ fontSize:10, color: availCount>0 ? "var(--ok)" : "var(--t5)" } }, availCount>0 ? `${availCount} jenis BBM tersedia` : "Jenis BBM belum diisi")
                 );
               })
         )
@@ -1331,21 +1456,22 @@ function GasStations({ stations, setStations, showToast }) {
         ),
 
         React.createElement("div", { style:{ marginBottom:12 } },
-          React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:5 } }, "NAMA SPBU"),
+          React.createElement("label", { style:{ fontSize:11, color:"var(--t4)", fontWeight:600, display:"block", marginBottom:5 } }, "NAMA SPBU"),
           React.createElement("input", { className:"inp", placeholder:"mis: Pertamina 34.175.01", value:form.name, onChange:e=>setForm(p=>({...p,name:e.target.value})) })
         ),
 
         // Address search (Nominatim) — only useful for manual-add path
         React.createElement("div", { style:{ marginBottom:12, position:"relative" } },
-          React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:5 } }, "CARI ALAMAT (opsional, untuk isi koordinat otomatis)"),
+          React.createElement("label", { style:{ fontSize:11, color:"var(--t4)", fontWeight:600, display:"block", marginBottom:5 } }, "CARI ALAMAT (opsional, untuk isi koordinat otomatis)"),
           React.createElement("div", { style:{ position:"relative" } },
-            React.createElement(Icon, { d:IC.search, size:13, stroke:"#4D5666", style:{position:"absolute",left:12,top:11} }),
+            React.createElement(Icon, { d:IC.search, size:13, stroke:"var(--t5)", style:{position:"absolute",left:12,top:11} }),
             React.createElement("input", { className:"inp", style:{paddingLeft:32}, placeholder:"Ketik nama jalan / area...", value:search, onChange:e=>setSearch(e.target.value) })
           ),
-          searching && React.createElement("div", { style:{ fontSize:11, color:"#4D5666", marginTop:5 } }, "Mencari..."),
+          searching && React.createElement("div", { style:{ fontSize:11, color:"var(--t5)", marginTop:5 } }, "Mencari..."),
+          !searching && searchError && React.createElement("div", { style:{ fontSize:11, color:"var(--warn)", marginTop:5 } }, "Pencarian alamat gagal (layanan sedang tidak tersedia). Isi LATITUDE/LONGITUDE secara manual di bawah."),
           searchResults.length>0 && React.createElement("div", { className:"card-flat", style:{ position:"absolute", zIndex:10, left:0, right:0, marginTop:4, maxHeight:160, overflowY:"auto" } },
             searchResults.map((r,i) => React.createElement("div", { key:i, onClick:()=>pickSearchResult(r),
-              style:{ padding:"8px 11px", fontSize:11.5, color:"#AEB8C9", cursor:"pointer", borderBottom: i<searchResults.length-1 ? "1px solid rgba(255,255,255,0.05)" : "none" } },
+              style:{ padding:"8px 11px", fontSize:11.5, color:"var(--t2)", cursor:"pointer", borderBottom: i<searchResults.length-1 ? "1px solid var(--border-05)" : "none" } },
               r.display_name
             ))
           )
@@ -1353,45 +1479,45 @@ function GasStations({ stations, setStations, showToast }) {
 
         React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 } },
           React.createElement("div", null,
-            React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:5 } }, "LATITUDE"),
+            React.createElement("label", { style:{ fontSize:11, color:"var(--t4)", fontWeight:600, display:"block", marginBottom:5 } }, "LATITUDE"),
             React.createElement("input", { className:"inp", style:{fontFamily:"'Space Grotesk',monospace",fontSize:12}, placeholder:"-6.260700", value:form.lat, onChange:e=>setForm(p=>({...p,lat:e.target.value})) })
           ),
           React.createElement("div", null,
-            React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:5 } }, "LONGITUDE"),
+            React.createElement("label", { style:{ fontSize:11, color:"var(--t4)", fontWeight:600, display:"block", marginBottom:5 } }, "LONGITUDE"),
             React.createElement("input", { className:"inp", style:{fontFamily:"'Space Grotesk',monospace",fontSize:12}, placeholder:"107.152500", value:form.lng, onChange:e=>setForm(p=>({...p,lng:e.target.value})) })
           )
         ),
 
         React.createElement("div", { style:{ marginBottom:14 } },
-          React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:5 } }, "ALAMAT (opsional)"),
+          React.createElement("label", { style:{ fontSize:11, color:"var(--t4)", fontWeight:600, display:"block", marginBottom:5 } }, "ALAMAT (opsional)"),
           React.createElement("input", { className:"inp", placeholder:"Jl. Sheikh Mohamed Bin Zayed...", value:form.address, onChange:e=>setForm(p=>({...p,address:e.target.value})) })
         ),
 
         React.createElement("div", { style:{ marginBottom:14 } },
-          React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:8 } }, "JENIS BBM TERSEDIA"),
+          React.createElement("label", { style:{ fontSize:11, color:"var(--t4)", fontWeight:600, display:"block", marginBottom:8 } }, "JENIS BBM TERSEDIA"),
           React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:7 } },
             form.fuels.map(f => React.createElement("button", { key:f.type, type:"button", onClick:()=>toggleFuel(f.type),
               style:{ display:"flex", alignItems:"center", gap:8, padding:"8px 11px", borderRadius:8, cursor:"pointer", textAlign:"left",
-                background: f.available ? "rgba(31,174,110,0.08)" : "rgba(255,255,255,0.02)",
-                border: f.available ? "1px solid rgba(31,174,110,0.3)" : "1px solid rgba(255,255,255,0.07)" } },
+                background: f.available ? "rgba(31,174,110,0.08)" : "var(--border-02)",
+                border: f.available ? "1px solid rgba(31,174,110,0.3)" : "1px solid var(--border)" } },
               React.createElement("div", { style:{ width:15, height:15, borderRadius:4, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center",
-                background: f.available ? "#1FAE6E" : "transparent", border: f.available ? "none" : "1px solid rgba(255,255,255,0.2)" } },
-                f.available && React.createElement(Icon, { d:IC.check, size:10, stroke:"#06101C", sw:3 })
+                background: f.available ? "var(--ok)" : "transparent", border: f.available ? "none" : "1px solid var(--border-12)" } },
+                f.available && React.createElement(Icon, { d:IC.check, size:10, stroke:"var(--accent-on)", sw:3 })
               ),
-              React.createElement("span", { style:{ fontSize:12, color: f.available ? "#EDF1F7" : "#6B7588", fontWeight: f.available ? 600 : 400 } }, f.type)
+              React.createElement("span", { style:{ fontSize:12, color: f.available ? "var(--t1)" : "var(--t4)", fontWeight: f.available ? 600 : 400 } }, f.type)
             ))
           )
         ),
 
         React.createElement("div", { style:{ marginBottom:16 } },
-          React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:5 } }, "CATATAN (opsional)"),
+          React.createElement("label", { style:{ fontSize:11, color:"var(--t4)", fontWeight:600, display:"block", marginBottom:5 } }, "CATATAN (opsional)"),
           React.createElement("input", { className:"inp", placeholder:"mis: dekat pintu tol, buka 24 jam...", value:form.notes, onChange:e=>setForm(p=>({...p,notes:e.target.value})) })
         ),
 
         React.createElement("div", { style:{ display:"flex", gap:9 } },
           React.createElement("button", { className:"btn btn-s", style:{flex:1}, onClick:()=>setShowForm(false) }, "Batal"),
           React.createElement("button", { className:"btn btn-p", style:{flex:1, opacity:canSave?1:0.4, cursor:canSave?"pointer":"not-allowed"}, onClick:save },
-            React.createElement(Icon,{d:IC.check,size:14,stroke:"#06101C"}), editing ? "Simpan Perubahan" : "Tambah SPBU"
+            React.createElement(Icon,{d:IC.check,size:14,stroke:"var(--accent-on)"}), editing ? "Simpan Perubahan" : "Tambah SPBU"
           )
         )
       )
@@ -1400,10 +1526,10 @@ function GasStations({ stations, setStations, showToast }) {
     confirmDel && React.createElement("div", { className:"overlay", onClick:e=>e.target===e.currentTarget&&setConfirmDel(null) },
       React.createElement("div", { className:"modal", style:{ maxWidth:360, textAlign:"center" } },
         React.createElement("div", { style:{ width:48, height:48, borderRadius:"50%", background:"rgba(224,82,74,0.1)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px" } },
-          React.createElement(Icon, { d:IC.trash, size:22, stroke:"#E0524A" })
+          React.createElement(Icon, { d:IC.trash, size:22, stroke:"var(--danger)" })
         ),
         React.createElement("h2", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:16, marginBottom:7 } }, "Hapus SPBU?"),
-        React.createElement("p", { style:{ fontSize:12, color:"#6B7588", marginBottom:18, lineHeight:1.6 } }, "Titik ", React.createElement("b",{style:{color:"#EDF1F7"}}, confirmDel.name), " akan dihapus permanen dari peta."),
+        React.createElement("p", { style:{ fontSize:12, color:"var(--t4)", marginBottom:18, lineHeight:1.6 } }, "Titik ", React.createElement("b",{style:{color:"var(--t1)"}}, confirmDel.name), " akan dihapus permanen dari peta."),
         React.createElement("div", { style:{ display:"flex", gap:9 } },
           React.createElement("button", { className:"btn btn-s", style:{flex:1}, onClick:()=>setConfirmDel(null) }, "Batal"),
           React.createElement("button", { className:"btn btn-d", style:{flex:1,justifyContent:"center",padding:"10px"}, onClick:()=>del(confirmDel) }, React.createElement(Icon,{d:IC.trash,size:13}), "Ya, Hapus")
@@ -1739,8 +1865,8 @@ function Reports({ claims, kantong, showToast }) {
             onClick: () => { setFilterMode(mode); setGenerated(false); setReport(null); },
             style:{ padding:"7px 14px", fontSize:12, fontWeight:600, borderRadius:8,
               background: filterMode===mode ? "rgba(0,184,224,0.1)" : "transparent",
-              border: `1px solid ${filterMode===mode ? "rgba(0,184,224,0.3)" : "rgba(255,255,255,0.08)"}`,
-              color: filterMode===mode ? "#00B8E0" : "#6B7588" } },
+              border: `1px solid ${filterMode===mode ? "rgba(0,184,224,0.3)" : "var(--border-08)"}`,
+              color: filterMode===mode ? "var(--accent)" : "var(--t4)" } },
             mode === "month" ? "Per Bulan" : "Rentang Tanggal"
           )
         )
@@ -1748,14 +1874,14 @@ function Reports({ claims, kantong, showToast }) {
       React.createElement("div", { style:{ display:"flex", gap:12, flexWrap:"wrap", alignItems:"flex-end" } },
         filterMode === "month" && React.createElement(React.Fragment, null,
           React.createElement("div", null,
-            React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:6 } }, "BULAN"),
+            React.createElement("label", { style:{ fontSize:11, color:"var(--t4)", fontWeight:600, display:"block", marginBottom:6 } }, "BULAN"),
             React.createElement("select", { className:"inp", style:{ width:148 }, value:selMonth,
               onChange: e => { setSelMonth(Number(e.target.value)); setGenerated(false); setReport(null); } },
               MONTHS.map((m,i) => React.createElement("option", { key:i, value:i }, m))
             )
           ),
           React.createElement("div", null,
-            React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:6 } }, "TAHUN"),
+            React.createElement("label", { style:{ fontSize:11, color:"var(--t4)", fontWeight:600, display:"block", marginBottom:6 } }, "TAHUN"),
             React.createElement("select", { className:"inp", style:{ width:96 }, value:selYear,
               onChange: e => { setSelYear(Number(e.target.value)); setGenerated(false); setReport(null); } },
               [2024,2025,2026,2027].map(y => React.createElement("option", { key:y, value:y }, y))
@@ -1764,46 +1890,46 @@ function Reports({ claims, kantong, showToast }) {
         ),
         filterMode === "range" && React.createElement(React.Fragment, null,
           React.createElement("div", null,
-            React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:6 } }, "DARI"),
+            React.createElement("label", { style:{ fontSize:11, color:"var(--t4)", fontWeight:600, display:"block", marginBottom:6 } }, "DARI"),
             React.createElement("input", { type:"date", className:"inp", style:{ width:156 }, value:dateFrom,
               onChange: e => { setDateFrom(e.target.value); setGenerated(false); setReport(null); } })
           ),
           React.createElement("div", null,
-            React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:6 } }, "SAMPAI"),
+            React.createElement("label", { style:{ fontSize:11, color:"var(--t4)", fontWeight:600, display:"block", marginBottom:6 } }, "SAMPAI"),
             React.createElement("input", { type:"date", className:"inp", style:{ width:156 }, value:dateTo,
               onChange: e => { setDateTo(e.target.value); setGenerated(false); setReport(null); } })
           )
         ),
         React.createElement("div", { style:{ marginLeft:"auto", display:"flex", gap:8 } },
           generated && React.createElement("button", { className:"btn btn-s btn-sm", onClick:refresh }, React.createElement(Icon, { d:IC.refresh, size:13 }), "Refresh"),
-          React.createElement("button", { className:"btn btn-p", onClick:generate, style:{ fontSize:12, padding:"10px 18px" } }, React.createElement(Icon, { d:IC.report, size:14, stroke:"#06101C" }), "Generate Report")
+          React.createElement("button", { className:"btn btn-p", onClick:generate, style:{ fontSize:12, padding:"10px 18px" } }, React.createElement(Icon, { d:IC.report, size:14, stroke:"var(--accent-on)" }), "Generate Report")
         )
       )
     ),
 
-    !generated && React.createElement("div", { style:{ textAlign:"center", padding:"56px 20px", color:"#4D5666" } },
+    !generated && React.createElement("div", { style:{ textAlign:"center", padding:"56px 20px", color:"var(--t5)" } },
       React.createElement("div", { style:{ width:52, height:52, borderRadius:12, background:"rgba(0,184,224,0.08)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px" } },
-        React.createElement(Icon, { d:IC.report, size:24, stroke:"#00B8E0" })
+        React.createElement(Icon, { d:IC.report, size:24, stroke:"var(--accent)" })
       ),
-      React.createElement("div", { style:{ fontSize:14, fontWeight:600, color:"#8A95A8", marginBottom:6 } }, "Pilih periode lalu klik Generate Report"),
-      React.createElement("div", { style:{ fontSize:12, color:"#4D5666" } }, "Mendukung filter per bulan atau rentang tanggal")
+      React.createElement("div", { style:{ fontSize:14, fontWeight:600, color:"var(--t3)", marginBottom:6 } }, "Pilih periode lalu klik Generate Report"),
+      React.createElement("div", { style:{ fontSize:12, color:"var(--t5)" } }, "Mendukung filter per bulan atau rentang tanggal")
     ),
 
-    generated && r?.empty && React.createElement("div", { style:{ textAlign:"center", padding:"44px", color:"#4D5666" } },
-      React.createElement(Icon, { d:IC.alert, size:28, stroke:"#D69A1F" }),
-      React.createElement("div", { style:{ marginTop:10, fontSize:14, fontWeight:500, color:"#8A95A8" } }, `Tidak ada data claim untuk ${periodLabel}`)
+    generated && r?.empty && React.createElement("div", { style:{ textAlign:"center", padding:"44px", color:"var(--t5)" } },
+      React.createElement(Icon, { d:IC.alert, size:28, stroke:"var(--warn)" }),
+      React.createElement("div", { style:{ marginTop:10, fontSize:14, fontWeight:500, color:"var(--t3)" } }, `Tidak ada data claim untuk ${periodLabel}`)
     ),
 
     generated && r && !r.empty && React.createElement(React.Fragment, null,
 
       React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18, padding:"12px 16px", background:"rgba(0,184,224,0.04)", border:"1px solid rgba(0,184,224,0.16)", borderRadius:10 } },
         React.createElement("div", null,
-          React.createElement("div", { style:{ fontSize:13, fontWeight:700, color:"#EDF1F7" } }, `Laporan ${periodLabel}`),
-          React.createElement("div", { style:{ fontSize:11, color:"#6B7588", marginTop:2 } }, `${r.monthClaims.length} transaksi · ${r.weeks.length} minggu · Rp ${fmt(r.grand)}`)
+          React.createElement("div", { style:{ fontSize:13, fontWeight:700, color:"var(--t1)" } }, `Laporan ${periodLabel}`),
+          React.createElement("div", { style:{ fontSize:11, color:"var(--t4)", marginTop:2 } }, `${r.monthClaims.length} transaksi · ${r.weeks.length} minggu · Rp ${fmt(r.grand)}`)
         ),
         React.createElement("div", { style:{ display:"flex", gap:8 } },
-          React.createElement("button", { className:"btn btn-s btn-sm", onClick:downloadCSV, style:{ color:"#1FAE6E", border:"1px solid rgba(31,174,110,0.25)" } }, React.createElement(Icon, { d:IC.download, size:13 }), "CSV"),
-          React.createElement("button", { className:"btn btn-s btn-sm", onClick:downloadPDF, style:{ color:"#00B8E0", border:"1px solid rgba(0,184,224,0.25)", opacity:downloading?0.5:1 } }, React.createElement(Icon, { d:IC.download, size:13 }), downloading ? "Menyiapkan..." : "PDF")
+          React.createElement("button", { className:"btn btn-s btn-sm", onClick:downloadCSV, style:{ color:"var(--ok)", border:"1px solid rgba(31,174,110,0.25)" } }, React.createElement(Icon, { d:IC.download, size:13 }), "CSV"),
+          React.createElement("button", { className:"btn btn-s btn-sm", onClick:downloadPDF, style:{ color:"var(--accent)", border:"1px solid rgba(0,184,224,0.25)", opacity:downloading?0.5:1 } }, React.createElement(Icon, { d:IC.download, size:13 }), downloading ? "Menyiapkan..." : "PDF")
         )
       ),
 
@@ -1814,16 +1940,16 @@ function Reports({ claims, kantong, showToast }) {
           {l:"Jenis Terbesar", v:r.topType?.type || "—"},
           {l:"Driver Tersering", v:r.topDriver?.driver?.split(" ")[0] || "—"},
         ].map((s,i) => React.createElement("div", { key:i, className:"scard", style:{ textAlign:"center", padding:"13px 8px" } },
-          React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:14, color:"#EDF1F7", marginBottom:4, wordBreak:"break-word" } }, s.v),
-          React.createElement("div", { style:{ fontSize:10, color:"#4D5666", textTransform:"uppercase", letterSpacing:"0.5px" } }, s.l)
+          React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:14, color:"var(--t1)", marginBottom:4, wordBreak:"break-word" } }, s.v),
+          React.createElement("div", { style:{ fontSize:10, color:"var(--t5)", textTransform:"uppercase", letterSpacing:"0.5px" } }, s.l)
         ))
       ),
 
-      React.createElement("div", { className:"card", style:{ borderLeft:"2px solid #00B8E0", padding:"15px 18px", marginBottom:18 } },
+      React.createElement("div", { className:"card", style:{ borderLeft:"2px solid var(--accent)", padding:"15px 18px", marginBottom:18 } },
         React.createElement("div", { className:"sec-label", style:{ marginBottom:10, borderBottom:"none", paddingBottom:0 } }, "Analisa & Insight"),
         React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:7 } },
-          r.insights.map((ins,i) => React.createElement("div", { key:i, style:{ display:"flex", gap:9, alignItems:"flex-start", fontSize:12.5, color:"#AEB8C9", lineHeight:1.5 } },
-            React.createElement("span", { style:{ flexShrink:0, marginTop:6, width:4, height:4, borderRadius:"50%", background:"#00B8E0" } }),
+          r.insights.map((ins,i) => React.createElement("div", { key:i, style:{ display:"flex", gap:9, alignItems:"flex-start", fontSize:12.5, color:"var(--t2)", lineHeight:1.5 } },
+            React.createElement("span", { style:{ flexShrink:0, marginTop:6, width:4, height:4, borderRadius:"50%", background:"var(--accent)" } }),
             React.createElement("span", null, ins)
           ))
         )
@@ -1835,8 +1961,8 @@ function Reports({ claims, kantong, showToast }) {
             onClick: () => setActiveTab(id),
             style:{ padding:"8px 16px", fontSize:12, fontWeight:600, borderRadius:8,
               background: activeTab===id ? "rgba(0,184,224,0.1)" : "transparent",
-              border: `1px solid ${activeTab===id ? "rgba(0,184,224,0.3)" : "rgba(255,255,255,0.08)"}`,
-              color: activeTab===id ? "#00B8E0" : "#6B7588" } },
+              border: `1px solid ${activeTab===id ? "rgba(0,184,224,0.3)" : "var(--border-08)"}`,
+              color: activeTab===id ? "var(--accent)" : "var(--t4)" } },
             label
           )
         )
@@ -1845,32 +1971,32 @@ function Reports({ claims, kantong, showToast }) {
       activeTab === "claim" && React.createElement(React.Fragment, null,
 
         React.createElement("div", { className:"card", style:{ overflow:"hidden", marginBottom:18 } },
-          React.createElement("div", { style:{ padding:"13px 16px", borderBottom:"1px solid rgba(255,255,255,0.06)" } },
+          React.createElement("div", { style:{ padding:"13px 16px", borderBottom:"1px solid var(--border-06)" } },
             React.createElement("h3", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, fontSize:13 } }, "Rincian Per Minggu")
           ),
           React.createElement("div", { style:{ overflowX:"auto" } },
             React.createElement("table", { style:{ width:"100%", borderCollapse:"collapse" } },
               React.createElement("thead", null,
-                React.createElement("tr", { style:{ borderBottom:"1px solid rgba(255,255,255,0.06)" } },
+                React.createElement("tr", { style:{ borderBottom:"1px solid var(--border-06)" } },
                   ["Minggu","Periode","Transaksi","Driver","Jenis Terbanyak","Total","%"].map(h =>
-                    React.createElement("th", { key:h, style:{ padding:"9px 14px", textAlign:"left", fontSize:11, fontWeight:600, color:"#4D5666", whiteSpace:"nowrap" } }, h)
+                    React.createElement("th", { key:h, style:{ padding:"9px 14px", textAlign:"left", fontSize:11, fontWeight:600, color:"var(--t5)", whiteSpace:"nowrap" } }, h)
                   )
                 )
               ),
               React.createElement("tbody", null,
                 r.weeks.map((w,i) =>
                   React.createElement("tr", { key:w.week, className:"trow" },
-                    React.createElement("td", { style:{ padding:"10px 14px" } }, React.createElement("span", { className:"num", style:{ fontWeight:700, color:"#EDF1F7" } }, `Minggu ${w.week}`)),
-                    React.createElement("td", { style:{ padding:"10px 14px", fontSize:11, color:"#6B7588" } }, filterMode==="month" ? weekLabel(w.week, r._reportYear, r._reportMonth) : ""),
-                    React.createElement("td", { style:{ padding:"10px 14px", fontSize:12, fontWeight:600, color:"#AEB8C9", textAlign:"center" } }, `${w.claims.length}x`),
-                    React.createElement("td", { style:{ padding:"10px 14px", fontSize:12, color:"#8A95A8", textAlign:"center" } }, w.drivers),
-                    React.createElement("td", { style:{ padding:"10px 14px" } }, React.createElement("span", { className:"tag", style:{ color:"#00B8E0" } }, w.topType)),
-                    React.createElement("td", { className:"num", style:{ padding:"10px 14px", fontWeight:700, fontSize:13, color:"#EDF1F7", textAlign:"right" } }, `Rp ${fmt(w.total)}`),
+                    React.createElement("td", { style:{ padding:"10px 14px" } }, React.createElement("span", { className:"num", style:{ fontWeight:700, color:"var(--t1)" } }, `Minggu ${w.week}`)),
+                    React.createElement("td", { style:{ padding:"10px 14px", fontSize:11, color:"var(--t4)" } }, filterMode==="month" ? weekLabel(w.week, r._reportYear, r._reportMonth) : ""),
+                    React.createElement("td", { style:{ padding:"10px 14px", fontSize:12, fontWeight:600, color:"var(--t2)", textAlign:"center" } }, `${w.claims.length}x`),
+                    React.createElement("td", { style:{ padding:"10px 14px", fontSize:12, color:"var(--t3)", textAlign:"center" } }, w.drivers),
+                    React.createElement("td", { style:{ padding:"10px 14px" } }, React.createElement("span", { className:"tag", style:{ color:"var(--accent)" } }, w.topType)),
+                    React.createElement("td", { className:"num", style:{ padding:"10px 14px", fontWeight:700, fontSize:13, color:"var(--t1)", textAlign:"right" } }, `Rp ${fmt(w.total)}`),
                     React.createElement("td", { style:{ padding:"10px 14px", textAlign:"right" } },
                       React.createElement("div", { style:{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4 } },
-                        React.createElement("span", { style:{ fontSize:11, fontWeight:600, color:"#AEB8C9" } }, `${r.grand > 0 ? (w.total/r.grand*100).toFixed(1) : 0}%`),
-                        React.createElement("div", { style:{ width:50, height:3, background:"rgba(255,255,255,0.07)", borderRadius:2, overflow:"hidden" } },
-                          React.createElement("div", { style:{ height:"100%", width:`${r.grand>0 ? w.total/r.grand*100 : 0}%`, background:"#00B8E0", borderRadius:2 } })
+                        React.createElement("span", { style:{ fontSize:11, fontWeight:600, color:"var(--t2)" } }, `${r.grand > 0 ? (w.total/r.grand*100).toFixed(1) : 0}%`),
+                        React.createElement("div", { style:{ width:50, height:3, background:"var(--border)", borderRadius:2, overflow:"hidden" } },
+                          React.createElement("div", { style:{ height:"100%", width:`${r.grand>0 ? w.total/r.grand*100 : 0}%`, background:"var(--accent)", borderRadius:2 } })
                         )
                       )
                     )
@@ -1879,12 +2005,12 @@ function Reports({ claims, kantong, showToast }) {
               ),
               React.createElement("tfoot", null,
                 React.createElement("tr", { style:{ borderTop:"1px solid rgba(0,184,224,0.18)", background:"rgba(0,184,224,0.03)" } },
-                  React.createElement("td", { colSpan:2, style:{ padding:"11px 14px", fontSize:12, fontWeight:700, color:"#AEB8C9" } }, "TOTAL BULAN"),
-                  React.createElement("td", { style:{ padding:"11px 14px", fontWeight:700, color:"#EDF1F7", textAlign:"center" } }, `${r.monthClaims.length}x`),
-                  React.createElement("td", { style:{ padding:"11px 14px", color:"#8A95A8", textAlign:"center" } }, [...new Set(r.monthClaims.map(c=>getClaimDriver(c)))].length),
+                  React.createElement("td", { colSpan:2, style:{ padding:"11px 14px", fontSize:12, fontWeight:700, color:"var(--t2)" } }, "TOTAL BULAN"),
+                  React.createElement("td", { style:{ padding:"11px 14px", fontWeight:700, color:"var(--t1)", textAlign:"center" } }, `${r.monthClaims.length}x`),
+                  React.createElement("td", { style:{ padding:"11px 14px", color:"var(--t3)", textAlign:"center" } }, [...new Set(r.monthClaims.map(c=>getClaimDriver(c)))].length),
                   React.createElement("td", null),
-                  React.createElement("td", { className:"num", style:{ padding:"11px 14px", fontWeight:800, fontSize:13, color:"#00B8E0", textAlign:"right" } }, `Rp ${fmt(r.grand)}`),
-                  React.createElement("td", { style:{ padding:"11px 14px", textAlign:"right", fontWeight:700, color:"#AEB8C9" } }, "100%")
+                  React.createElement("td", { className:"num", style:{ padding:"11px 14px", fontWeight:800, fontSize:13, color:"var(--accent)", textAlign:"right" } }, `Rp ${fmt(r.grand)}`),
+                  React.createElement("td", { style:{ padding:"11px 14px", textAlign:"right", fontWeight:700, color:"var(--t2)" } }, "100%")
                 )
               )
             )
@@ -1894,45 +2020,45 @@ function Reports({ claims, kantong, showToast }) {
         React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:18 } },
 
           React.createElement("div", { className:"card", style:{ overflow:"hidden" } },
-            React.createElement("div", { style:{ padding:"13px 16px", borderBottom:"1px solid rgba(255,255,255,0.06)" } },
+            React.createElement("div", { style:{ padding:"13px 16px", borderBottom:"1px solid var(--border-06)" } },
               React.createElement("h3", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, fontSize:13 } }, "Per Driver")
             ),
             r.byDriver.map((d,i) =>
-              React.createElement("div", { key:d.driver, style:{ display:"flex", alignItems:"center", gap:12, padding:"11px 16px", borderBottom:"1px solid rgba(255,255,255,0.04)" } },
-                React.createElement("div", { className:"num", style:{ width:22, height:22, borderRadius:6, background:"rgba(0,184,224,0.1)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:10, fontWeight:700, color:"#00B8E0" } }, i+1),
+              React.createElement("div", { key:d.driver, style:{ display:"flex", alignItems:"center", gap:12, padding:"11px 16px", borderBottom:"1px solid var(--border-04)" } },
+                React.createElement("div", { className:"num", style:{ width:22, height:22, borderRadius:6, background:"rgba(0,184,224,0.1)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:10, fontWeight:700, color:"var(--accent)" } }, i+1),
                 React.createElement("div", { style:{ flex:1, minWidth:0 } },
-                  React.createElement("div", { style:{ fontSize:12.5, fontWeight:600, color:"#EDF1F7", marginBottom:2 } }, d.driver),
-                  React.createElement("div", { style:{ fontSize:11, color:"#4D5666" } }, `${d.count}x claim · ${d.weeks} minggu · ${d.topType}`),
-                  React.createElement("div", { style:{ height:3, background:"rgba(255,255,255,0.06)", borderRadius:2, marginTop:5, overflow:"hidden" } },
-                    React.createElement("div", { style:{ height:"100%", width:`${r.grand>0 ? d.total/r.grand*100 : 0}%`, background:"#00B8E0", borderRadius:2 } })
+                  React.createElement("div", { style:{ fontSize:12.5, fontWeight:600, color:"var(--t1)", marginBottom:2 } }, d.driver),
+                  React.createElement("div", { style:{ fontSize:11, color:"var(--t5)" } }, `${d.count}x claim · ${d.weeks} minggu · ${d.topType}`),
+                  React.createElement("div", { style:{ height:3, background:"var(--border-06)", borderRadius:2, marginTop:5, overflow:"hidden" } },
+                    React.createElement("div", { style:{ height:"100%", width:`${r.grand>0 ? d.total/r.grand*100 : 0}%`, background:"var(--accent)", borderRadius:2 } })
                   )
                 ),
                 React.createElement("div", { style:{ flexShrink:0, textAlign:"right" } },
-                  React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:12.5, color:"#EDF1F7" } }, `Rp ${fmt(d.total)}`),
-                  React.createElement("div", { style:{ fontSize:10, color:"#4D5666" } }, `${r.grand>0 ? (d.total/r.grand*100).toFixed(1) : 0}%`)
+                  React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:12.5, color:"var(--t1)" } }, `Rp ${fmt(d.total)}`),
+                  React.createElement("div", { style:{ fontSize:10, color:"var(--t5)" } }, `${r.grand>0 ? (d.total/r.grand*100).toFixed(1) : 0}%`)
                 )
               )
             )
           ),
 
           React.createElement("div", { className:"card", style:{ overflow:"hidden" } },
-            React.createElement("div", { style:{ padding:"13px 16px", borderBottom:"1px solid rgba(255,255,255,0.06)" } },
+            React.createElement("div", { style:{ padding:"13px 16px", borderBottom:"1px solid var(--border-06)" } },
               React.createElement("h3", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, fontSize:13 } }, "Per Jenis Claim")
             ),
             React.createElement("div", { style:{ padding:"16px" } },
               r.byType.length === 0
-                ? React.createElement("div", { style:{ textAlign:"center", color:"#4D5666", padding:18 } }, "Tidak ada data")
+                ? React.createElement("div", { style:{ textAlign:"center", color:"var(--t5)", padding:18 } }, "Tidak ada data")
                 : r.byType.map((t,i) =>
                     React.createElement("div", { key:t.type, style:{ marginBottom:13 } },
                       React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", marginBottom:5 } },
                         React.createElement("div", { style:{ display:"flex", alignItems:"center", gap:8 } },
-                          React.createElement("span", { className:"tag", style:{ color:TYPE_COL[t.type]||"#8A95A8" } }, t.type),
-                          React.createElement("span", { style:{ fontSize:11, color:"#4D5666" } }, `${t.count}x`)
+                          React.createElement("span", { className:"tag", style:{ color:TYPE_COL[t.type]||"var(--t3)" } }, t.type),
+                          React.createElement("span", { style:{ fontSize:11, color:"var(--t5)" } }, `${t.count}x`)
                         ),
-                        React.createElement("span", { className:"num", style:{ fontSize:12, fontWeight:700, color:"#EDF1F7" } }, `Rp ${fmt(t.total)}`)
+                        React.createElement("span", { className:"num", style:{ fontSize:12, fontWeight:700, color:"var(--t1)" } }, `Rp ${fmt(t.total)}`)
                       ),
                       React.createElement("div", { className:"prog" },
-                        React.createElement("div", { className:"prog-f", style:{ width:`${r.grand>0 ? (t.total/r.grand*100).toFixed(0) : 0}%`, background:TYPE_COL[t.type]||"#8A95A8" } })
+                        React.createElement("div", { className:"prog-f", style:{ width:`${r.grand>0 ? (t.total/r.grand*100).toFixed(0) : 0}%`, background:TYPE_COL[t.type]||"var(--t3)" } })
                       )
                     )
                   )
@@ -1941,16 +2067,16 @@ function Reports({ claims, kantong, showToast }) {
         ),
 
         React.createElement("div", { className:"card", style:{ overflow:"hidden" } },
-          React.createElement("div", { style:{ padding:"13px 16px", borderBottom:"1px solid rgba(255,255,255,0.06)", display:"flex", justifyContent:"space-between", alignItems:"center" } },
+          React.createElement("div", { style:{ padding:"13px 16px", borderBottom:"1px solid var(--border-06)", display:"flex", justifyContent:"space-between", alignItems:"center" } },
             React.createElement("h3", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, fontSize:13 } }, "Detail Transaksi"),
-            React.createElement("span", { style:{ fontSize:11, color:"#4D5666" } }, `${r.monthClaims.length} transaksi`)
+            React.createElement("span", { style:{ fontSize:11, color:"var(--t5)" } }, `${r.monthClaims.length} transaksi`)
           ),
           React.createElement("div", { style:{ overflowX:"auto" } },
             React.createElement("table", { style:{ width:"100%", borderCollapse:"collapse" } },
               React.createElement("thead", null,
-                React.createElement("tr", { style:{ borderBottom:"1px solid rgba(255,255,255,0.06)" } },
+                React.createElement("tr", { style:{ borderBottom:"1px solid var(--border-06)" } },
                   ["Tanggal","Driver","Jenis","Rincian","Nominal"].map(h =>
-                    React.createElement("th", { key:h, style:{ padding:"9px 14px", textAlign:"left", fontSize:11, fontWeight:600, color:"#4D5666" } }, h)
+                    React.createElement("th", { key:h, style:{ padding:"9px 14px", textAlign:"left", fontSize:11, fontWeight:600, color:"var(--t5)" } }, h)
                   )
                 )
               ),
@@ -1960,19 +2086,19 @@ function Reports({ claims, kantong, showToast }) {
                   const driver = getClaimDriver(c);
                   return items.map((item, idx) =>
                     React.createElement("tr", { key:`${c.id}-${idx}`, className:"trow" },
-                      idx === 0 ? React.createElement("td", { rowSpan:items.length, style:{ padding:"9px 14px", fontSize:12, color:"#8A95A8", verticalAlign:"top" } }, fmtDate(c.date)) : null,
-                      idx === 0 ? React.createElement("td", { rowSpan:items.length, style:{ padding:"9px 14px", fontSize:12, fontWeight:500, color:"#EDF1F7", verticalAlign:"top" } }, driver) : null,
-                      React.createElement("td", { style:{ padding:"9px 14px" } }, React.createElement("span", { className:"tag", style:{ color:TYPE_COL[item.type]||"#8A95A8" } }, item.type || "—")),
-                      React.createElement("td", { style:{ padding:"9px 14px", fontSize:11, color:"#6B7588", fontFamily:"monospace" } }, item.expr || ""),
-                      React.createElement("td", { className:"num", style:{ padding:"9px 14px", fontSize:12.5, fontWeight:700, color:"#EDF1F7", textAlign:"right" } }, `Rp ${fmt(item.total || 0)}`)
+                      idx === 0 ? React.createElement("td", { rowSpan:items.length, style:{ padding:"9px 14px", fontSize:12, color:"var(--t3)", verticalAlign:"top" } }, fmtDate(c.date)) : null,
+                      idx === 0 ? React.createElement("td", { rowSpan:items.length, style:{ padding:"9px 14px", fontSize:12, fontWeight:500, color:"var(--t1)", verticalAlign:"top" } }, driver) : null,
+                      React.createElement("td", { style:{ padding:"9px 14px" } }, React.createElement("span", { className:"tag", style:{ color:TYPE_COL[item.type]||"var(--t3)" } }, item.type || "—")),
+                      React.createElement("td", { style:{ padding:"9px 14px", fontSize:11, color:"var(--t4)", fontFamily:"monospace" } }, item.expr || ""),
+                      React.createElement("td", { className:"num", style:{ padding:"9px 14px", fontSize:12.5, fontWeight:700, color:"var(--t1)", textAlign:"right" } }, `Rp ${fmt(item.total || 0)}`)
                     )
                   );
                 })
               ),
               React.createElement("tfoot", null,
                 React.createElement("tr", { style:{ borderTop:"1px solid rgba(0,184,224,0.18)", background:"rgba(0,184,224,0.03)" } },
-                  React.createElement("td", { colSpan:4, style:{ padding:"11px 14px", fontSize:12, fontWeight:700, color:"#AEB8C9" } }, "GRAND TOTAL"),
-                  React.createElement("td", { className:"num", style:{ padding:"11px 14px", fontWeight:800, fontSize:13, color:"#00B8E0", textAlign:"right" } }, `Rp ${fmt(r.grand)}`)
+                  React.createElement("td", { colSpan:4, style:{ padding:"11px 14px", fontSize:12, fontWeight:700, color:"var(--t2)" } }, "GRAND TOTAL"),
+                  React.createElement("td", { className:"num", style:{ padding:"11px 14px", fontWeight:800, fontSize:13, color:"var(--accent)", textAlign:"right" } }, `Rp ${fmt(r.grand)}`)
                 )
               )
             )
@@ -1982,8 +2108,8 @@ function Reports({ claims, kantong, showToast }) {
 
       activeTab === "cashflow" && React.createElement(React.Fragment, null,
         !r.cashflowData
-          ? React.createElement("div", { style:{ textAlign:"center", padding:"44px", color:"#4D5666" } },
-              React.createElement(Icon, { d:IC.wallet, size:32, stroke:"#374151" }),
+          ? React.createElement("div", { style:{ textAlign:"center", padding:"44px", color:"var(--t5)" } },
+              React.createElement(Icon, { d:IC.wallet, size:32, stroke:"var(--t5)" }),
               React.createElement("div", { style:{ marginTop:11, fontSize:13 } }, "Data Dana Operasional tidak tersedia")
             )
           : (() => {
@@ -1994,20 +2120,20 @@ function Reports({ claims, kantong, showToast }) {
                     {l:"Total Alokasi (A3)", v:`Rp ${fmt(cf.totalAlokasi)}`},
                     {l:"Cash Available (A4)", v:`Rp ${fmt(cf.cashAvailable)}`},
                     {l:"Outstanding (B)", v:`Rp ${fmt(cf.outstanding)}`},
-                    {l:"GAP (B−A)", v:`${cf.gap>=0?"+":""}Rp ${fmt(cf.gap)}`, col:cf.gap===0?"#1FAE6E":cf.gap>0?"#D69A1F":"#E0524A" },
+                    {l:"GAP (B−A)", v:`${cf.gap>=0?"+":""}Rp ${fmt(cf.gap)}`, col:cf.gap===0?"var(--ok)":cf.gap>0?"var(--warn)":"var(--danger)" },
                   ].map((s,i) => React.createElement("div", { key:i, className:"scard", style:{ textAlign:"center", padding:"13px 8px" } },
-                    React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:14, color:s.col||"#EDF1F7", marginBottom:4, wordBreak:"break-word" } }, s.v),
-                    React.createElement("div", { style:{ fontSize:10, color:"#4D5666", textTransform:"uppercase", letterSpacing:"0.5px" } }, s.l)
+                    React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:14, color:s.col||"var(--t1)", marginBottom:4, wordBreak:"break-word" } }, s.v),
+                    React.createElement("div", { style:{ fontSize:10, color:"var(--t5)", textTransform:"uppercase", letterSpacing:"0.5px" } }, s.l)
                   ))
                 ),
                 React.createElement("div", { className:"card", style:{ overflow:"hidden" } },
-                  React.createElement("div", { style:{ padding:"13px 16px", borderBottom:"1px solid rgba(255,255,255,0.06)" } },
+                  React.createElement("div", { style:{ padding:"13px 16px", borderBottom:"1px solid var(--border-06)" } },
                     React.createElement("h3", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, fontSize:13 } }, "Rincian Dana Operasional")
                   ),
                   React.createElement("table", { style:{ width:"100%", borderCollapse:"collapse" } },
                     React.createElement("thead", null,
-                      React.createElement("tr", { style:{ borderBottom:"1px solid rgba(255,255,255,0.06)" } },
-                        ["Pos","Nilai","Keterangan"].map(h => React.createElement("th", { key:h, style:{ padding:"9px 14px", textAlign:"left", fontSize:11, fontWeight:600, color:"#4D5666" } }, h))
+                      React.createElement("tr", { style:{ borderBottom:"1px solid var(--border-06)" } },
+                        ["Pos","Nilai","Keterangan"].map(h => React.createElement("th", { key:h, style:{ padding:"9px 14px", textAlign:"left", fontSize:11, fontWeight:600, color:"var(--t5)" } }, h))
                       )
                     ),
                     React.createElement("tbody", null,
@@ -2021,17 +2147,17 @@ function Reports({ claims, kantong, showToast }) {
                         ["Outstanding (B)", cf.outstanding, "A3 + A4 + A5 + A6"],
                       ].map(([label, val, note]) =>
                         React.createElement("tr", { key:label, className:"trow" },
-                          React.createElement("td", { style:{ padding:"10px 14px", fontSize:12.5, fontWeight:600, color:"#EDF1F7" } }, label),
-                          React.createElement("td", { className:"num", style:{ padding:"10px 14px", fontSize:12.5, fontWeight:700, color:"#00B8E0" } }, `Rp ${fmt(val)}`),
-                          React.createElement("td", { style:{ padding:"10px 14px", fontSize:11.5, color:"#6B7588" } }, note)
+                          React.createElement("td", { style:{ padding:"10px 14px", fontSize:12.5, fontWeight:600, color:"var(--t1)" } }, label),
+                          React.createElement("td", { className:"num", style:{ padding:"10px 14px", fontSize:12.5, fontWeight:700, color:"var(--accent)" } }, `Rp ${fmt(val)}`),
+                          React.createElement("td", { style:{ padding:"10px 14px", fontSize:11.5, color:"var(--t4)" } }, note)
                         )
                       )
                     ),
                     React.createElement("tfoot", null,
                       React.createElement("tr", { style:{ borderTop:"1px solid rgba(0,184,224,0.14)", background: cf.gap===0?"rgba(31,174,110,0.04)":cf.gap>0?"rgba(214,154,31,0.04)":"rgba(224,82,74,0.04)" } },
-                        React.createElement("td", { style:{ padding:"13px 14px", fontSize:12, fontWeight:700, color:"#AEB8C9" } }, "GAP (B − A)"),
-                        React.createElement("td", { className:"num", style:{ padding:"13px 14px", fontWeight:800, fontSize:13, color: cf.gap===0?"#1FAE6E":cf.gap>0?"#D69A1F":"#E0524A" } }, `${cf.gap>=0?"+":""}Rp ${fmt(cf.gap)}`),
-                        React.createElement("td", { style:{ padding:"13px 14px", fontSize:11.5, color:"#6B7588" } }, cf.gap===0 ? "Sesuai" : cf.gap>0 ? "Outstanding melebihi total cash" : "Outstanding di bawah total cash")
+                        React.createElement("td", { style:{ padding:"13px 14px", fontSize:12, fontWeight:700, color:"var(--t2)" } }, "GAP (B − A)"),
+                        React.createElement("td", { className:"num", style:{ padding:"13px 14px", fontWeight:800, fontSize:13, color: cf.gap===0?"var(--ok)":cf.gap>0?"var(--warn)":"var(--danger)" } }, `${cf.gap>=0?"+":""}Rp ${fmt(cf.gap)}`),
+                        React.createElement("td", { style:{ padding:"13px 14px", fontSize:11.5, color:"var(--t4)" } }, cf.gap===0 ? "Sesuai" : cf.gap>0 ? "Outstanding melebihi total cash" : "Outstanding di bawah total cash")
                       )
                     )
                   )
@@ -2051,7 +2177,7 @@ function Documents({vehicles,setVehicles,showToast}) {
   const [editV,setEditV]     = useState(null);
   const [form,setForm]       = useState({kir:"",service:"",stnk:""});
   const [expanded,setExpanded] = useState({});
-  const CAT_COL = {KIR:"#00B8E0",Service:"#D69A1F",STNK:"#1FAE6E"};
+  const CAT_COL = {KIR:"var(--accent)",Service:"var(--warn)",STNK:"var(--ok)"};
   const allDocs = vehicles.flatMap(v=>[
     {vid:v.id,plate:v.plate,type:v.type,driver:v.driver,cat:"KIR",date:v.kir,reqs:KIR_DOCS},
     {vid:v.id,plate:v.plate,type:v.type,driver:v.driver,cat:"Service",date:v.service,reqs:SVC_DOCS},
@@ -2066,8 +2192,8 @@ function Documents({vehicles,setVehicles,showToast}) {
   const tog = docKey => setExpanded(p=>({...p,[docKey]:!p[docKey]}));
   return React.createElement("div",null,
     React.createElement("div",{style:{display:"flex",gap:16,marginBottom:16,flexWrap:"wrap"}},
-      [["#E0524A","≤ 7 hari (urgent)"],["#D69A1F","8–30 hari"],["#1FAE6E","> 30 hari"]].map(([col,l])=>
-        React.createElement("span",{key:l,style:{fontSize:11,color:"#6B7588",display:"flex",alignItems:"center",gap:6}},
+      [["var(--danger)","≤ 7 hari (urgent)"],["var(--warn)","8–30 hari"],["var(--ok)","> 30 hari"]].map(([col,l])=>
+        React.createElement("span",{key:l,style:{fontSize:11,color:"var(--t4)",display:"flex",alignItems:"center",gap:6}},
           React.createElement("span",{style:{width:7,height:7,borderRadius:"50%",background:col,display:"inline-block"}}),l
         )
       )
@@ -2075,31 +2201,31 @@ function Documents({vehicles,setVehicles,showToast}) {
     React.createElement("div",{style:{display:"grid",gap:9}},
       allDocs.map(doc=>{
         const days=daysUntil(doc.date); const col=urgCol(days); const docKey=`${doc.vid}-${doc.cat}`; const exp=expanded[docKey];
-        return React.createElement("div",{key:docKey,className:"card",style:{overflow:"hidden",borderLeft:days<=7?`2px solid ${col}`:"1px solid rgba(255,255,255,0.07)"}},
+        return React.createElement("div",{key:docKey,className:"card",style:{overflow:"hidden",borderLeft:days<=7?`2px solid ${col}`:"1px solid var(--border)"}},
           React.createElement("div",{style:{display:"flex",alignItems:"center",gap:13,padding:"14px 17px",cursor:"pointer"},onClick:()=>tog(docKey)},
-            React.createElement("div",{style:{width:34,height:34,borderRadius:9,background:(CAT_COL[doc.cat]||"#4D5666")+"18",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},React.createElement(Icon,{d:IC.doc,size:16,stroke:CAT_COL[doc.cat]})),
+            React.createElement("div",{style:{width:34,height:34,borderRadius:9,background:(CAT_COL[doc.cat]||"var(--t5)")+"18",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},React.createElement(Icon,{d:IC.doc,size:16,stroke:CAT_COL[doc.cat]})),
             React.createElement("div",{style:{flex:1,minWidth:0}},
               React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}},
-                React.createElement("span",{className:"num",style:{fontWeight:700,fontSize:13,color:"#EDF1F7"}},doc.plate),
+                React.createElement("span",{className:"num",style:{fontWeight:700,fontSize:13,color:"var(--t1)"}},doc.plate),
                 React.createElement("span",{className:"tag",style:{color:CAT_COL[doc.cat]}},doc.cat),
-                days<=7 && React.createElement("span",{style:{fontSize:9,fontWeight:700,color:"#E0524A",background:"rgba(224,82,74,0.1)",padding:"2px 7px",borderRadius:5}},"URGENT")
+                days<=7 && React.createElement("span",{style:{fontSize:9,fontWeight:700,color:"var(--danger)",background:"rgba(224,82,74,0.1)",padding:"2px 7px",borderRadius:5}},"URGENT")
               ),
-              React.createElement("div",{style:{fontSize:11,color:"#4D5666",marginTop:2}},doc.type," · ",doc.driver)
+              React.createElement("div",{style:{fontSize:11,color:"var(--t5)",marginTop:2}},doc.type," · ",doc.driver)
             ),
             React.createElement("div",{style:{textAlign:"right",marginRight:8,flexShrink:0}},
-              React.createElement("div",{style:{fontSize:11,color:"#8A95A8"}},fmtDate(doc.date)),
+              React.createElement("div",{style:{fontSize:11,color:"var(--t3)"}},fmtDate(doc.date)),
               React.createElement("div",{style:{fontSize:12,fontWeight:700,color:col}},days<=0?"EXPIRED":`${days} hari lagi`)
             ),
             React.createElement("button",{className:"btn btn-s btn-sm",style:{padding:"5px 9px",flexShrink:0},onClick:e=>{e.stopPropagation();open(vehicles.find(v=>v.id===doc.vid));}},React.createElement(Icon,{d:IC.edit,size:12})),
-            React.createElement("div",{style:{color:"#4D5666",transition:"transform .15s",transform:exp?"rotate(180deg)":"rotate(0)",flexShrink:0}},React.createElement(Icon,{d:IC.chevDown,size:15}))
+            React.createElement("div",{style:{color:"var(--t5)",transition:"transform .15s",transform:exp?"rotate(180deg)":"rotate(0)",flexShrink:0}},React.createElement(Icon,{d:IC.chevDown,size:15}))
           ),
-          exp && React.createElement("div",{style:{padding:"0 17px 15px",borderTop:"1px solid rgba(255,255,255,0.05)"}},
+          exp && React.createElement("div",{style:{padding:"0 17px 15px",borderTop:"1px solid var(--border-05)"}},
             React.createElement("div",{style:{paddingTop:13}},
-              React.createElement("div",{style:{fontSize:11,fontWeight:600,color:"#6B7588",marginBottom:8}},"Berkas yang Diperlukan"),
+              React.createElement("div",{style:{fontSize:11,fontWeight:600,color:"var(--t4)",marginBottom:8}},"Berkas yang Diperlukan"),
               React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:7}},
-                doc.reqs.map((req,j)=>React.createElement("div",{key:j,style:{display:"flex",alignItems:"center",gap:7,padding:"7px 10px",background:"rgba(255,255,255,0.02)",borderRadius:7}},
-                  React.createElement(Icon,{d:IC.check,size:12,stroke:"#1FAE6E"}),
-                  React.createElement("span",{style:{fontSize:11,color:"#AEB8C9"}},req)
+                doc.reqs.map((req,j)=>React.createElement("div",{key:j,style:{display:"flex",alignItems:"center",gap:7,padding:"7px 10px",background:"var(--border-02)",borderRadius:7}},
+                  React.createElement(Icon,{d:IC.check,size:12,stroke:"var(--ok)"}),
+                  React.createElement("span",{style:{fontSize:11,color:"var(--t2)"}},req)
                 ))
               )
             )
@@ -2114,7 +2240,7 @@ function Documents({vehicles,setVehicles,showToast}) {
           React.createElement("button",{className:"btn btn-s btn-sm",style:{padding:"6px 9px"},onClick:()=>setShow(false)},React.createElement(Icon,{d:IC.x,size:14}))
         ),
         React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:12}},
-          [["Jadwal KIR","kir","#00B8E0"],["Jadwal Service","service","#D69A1F"],["Jadwal STNK","stnk","#1FAE6E"]].map(([l,k,col])=>
+          [["Jadwal KIR","kir","var(--accent)"],["Jadwal Service","service","var(--warn)"],["Jadwal STNK","stnk","var(--ok)"]].map(([l,k,col])=>
             React.createElement("div",{key:k,style:{background:col+"08",border:`1px solid ${col}22`,borderRadius:10,padding:12}},
               React.createElement("label",{style:{fontSize:11,color:col,fontWeight:600,display:"block",marginBottom:7}},l),
               React.createElement("input",{type:"date",className:"inp",value:form[k]||"",onChange:e=>setForm(p=>({...p,[k]:e.target.value}))})
@@ -2123,7 +2249,7 @@ function Documents({vehicles,setVehicles,showToast}) {
         ),
         React.createElement("div",{style:{display:"flex",gap:9,marginTop:20}},
           React.createElement("button",{className:"btn btn-s",style:{flex:1},onClick:()=>setShow(false)},"Batal"),
-          React.createElement("button",{className:"btn btn-p",style:{flex:1},onClick:save},React.createElement(Icon,{d:IC.check,size:14,stroke:"#06101C"}),"Simpan")
+          React.createElement("button",{className:"btn btn-p",style:{flex:1},onClick:save},React.createElement(Icon,{d:IC.check,size:14,stroke:"var(--accent-on)"}),"Simpan")
         )
       )
     )
@@ -2136,18 +2262,18 @@ function Documents({vehicles,setVehicles,showToast}) {
 function Notifs({notifs,readIds,setReadIds,markAll}) {
   const isRead  = id => readIds.has(id);
   const markOne = id => setReadIds(p => new Set([...p, id]));
-  const CFG = {warning:{col:"#D69A1F",bg:"rgba(214,154,31,0.07)",icon:IC.alert},info:{col:"#00B8E0",bg:"rgba(0,184,224,0.06)",icon:IC.bell},success:{col:"#1FAE6E",bg:"rgba(31,174,110,0.06)",icon:IC.check}};
+  const CFG = {warning:{col:"var(--warn)",bg:"rgba(214,154,31,0.07)",icon:IC.alert},info:{col:"var(--accent)",bg:"rgba(0,184,224,0.06)",icon:IC.bell},success:{col:"var(--ok)",bg:"rgba(31,174,110,0.06)",icon:IC.check}};
   return React.createElement("div",null,
     React.createElement("div",{style:{display:"flex",justifyContent:"flex-end",marginBottom:16}},
       React.createElement("button",{className:"btn btn-s btn-sm",onClick:markAll},React.createElement(Icon,{d:IC.check,size:12}),"Tandai Semua Dibaca")
     ),
-    notifs.length===0 ? React.createElement("div",{style:{textAlign:"center",padding:"46px 0",color:"#4D5666"}},React.createElement(Icon,{d:IC.check,size:30,stroke:"#1FAE6E"}),React.createElement("div",{style:{marginTop:10,fontSize:13,fontWeight:500}},"Semua aman — tidak ada notifikasi"))
+    notifs.length===0 ? React.createElement("div",{style:{textAlign:"center",padding:"46px 0",color:"var(--t5)"}},React.createElement(Icon,{d:IC.check,size:30,stroke:"var(--ok)"}),React.createElement("div",{style:{marginTop:10,fontSize:13,fontWeight:500}},"Semua aman — tidak ada notifikasi"))
     : React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:8}},
-        notifs.map(n=>{const c=CFG[n.type]||CFG.info; const read=isRead(n.id); return React.createElement("div",{key:n.id,className:"card",style:{background:read?"#0E1422":c.bg,borderColor:read?"rgba(255,255,255,0.07)":c.col+"30",padding:"14px 16px",display:"flex",gap:12,alignItems:"flex-start"}},
+        notifs.map(n=>{const c=CFG[n.type]||CFG.info; const read=isRead(n.id); return React.createElement("div",{key:n.id,className:"card",style:{background:read?"var(--surface)":c.bg,borderColor:read?"var(--border)":c.col+"30",padding:"14px 16px",display:"flex",gap:12,alignItems:"flex-start"}},
           React.createElement("div",{style:{width:32,height:32,borderRadius:8,background:c.col+"18",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},React.createElement(Icon,{d:c.icon,size:15,stroke:c.col})),
           React.createElement("div",{style:{flex:1}},
-            React.createElement("div",{style:{display:"flex",alignItems:"center",gap:7,marginBottom:4}},React.createElement("span",{style:{fontSize:12.5,fontWeight:600,color:"#EDF1F7"}},n.title),!read&&React.createElement("div",{style:{width:6,height:6,borderRadius:"50%",background:c.col}})),
-            React.createElement("div",{style:{fontSize:11.5,color:"#6B7588",lineHeight:1.5}},n.msg)
+            React.createElement("div",{style:{display:"flex",alignItems:"center",gap:7,marginBottom:4}},React.createElement("span",{style:{fontSize:12.5,fontWeight:600,color:"var(--t1)"}},n.title),!read&&React.createElement("div",{style:{width:6,height:6,borderRadius:"50%",background:c.col}})),
+            React.createElement("div",{style:{fontSize:11.5,color:"var(--t4)",lineHeight:1.5}},n.msg)
           ),
           !read && React.createElement("button",{className:"btn btn-s btn-sm",style:{fontSize:10,padding:"4px 9px",flexShrink:0},onClick:()=>markOne(n.id)},"Baca")
         );})
@@ -2163,12 +2289,12 @@ function DriverBudget({tiers,setTiers,showToast}) {
   const [showAdd,setShowAdd] = useState(false);
   const [editTier,setEditTier] = useState(null);
   const [confirmDel,setConfirmDel] = useState(null);
-  const [form,setForm] = useState({name:"",color:"#00B8E0",amount:"",count:"1"});
-  const PALETTE = ["#00B8E0","#1FAE6E","#D69A1F","#E0524A","#8A95A8"];
+  const [form,setForm] = useState({name:"",color:"var(--accent)",amount:"",count:"1"});
+  const PALETTE = ["var(--accent)","var(--ok)","var(--warn)","var(--danger)","var(--t3)"];
   const totalNow     = (tiers||[]).reduce((s,t)=>s+t.amount*t.count,0);
   const totalSim     = (tiers||[]).reduce((s,t)=>s+Math.round(t.amount*(1+simPct/100))*t.count,0);
   const totalDrivers = (tiers||[]).reduce((s,t)=>s+t.count,0);
-  const openAdd = ()=>{ setForm({name:"",color:"#00B8E0",amount:"",count:"1"}); setEditTier(null); setShowAdd(true); };
+  const openAdd = ()=>{ setForm({name:"",color:"var(--accent)",amount:"",count:"1"}); setEditTier(null); setShowAdd(true); };
   const openEdit= t =>{ setForm({name:t.name,color:t.color,amount:String(t.amount),count:String(t.count)}); setEditTier(t); setShowAdd(true); };
   const saveTier = async () => {
     const amt = evalExpr(form.amount);
@@ -2186,7 +2312,7 @@ function DriverBudget({tiers,setTiers,showToast}) {
   return React.createElement("div",null,
     React.createElement("div",{className:"g4",style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:13,marginBottom:20}},
       [{l:"Total Driver",v:totalDrivers},{l:"Budget/Bulan",v:"Rp "+fmt(totalNow)},{l:`Simulasi +${simPct}%`,v:"Rp "+fmt(totalSim)},{l:"Selisih",v:"Rp "+fmt(totalSim-totalNow),danger:true}].map((s,i)=>
-        React.createElement("div",{key:i,className:"scard",style:{textAlign:"center"}},React.createElement("div",{className:"num",style:{fontWeight:700,fontSize:16,color:s.danger?"#D69A1F":"#EDF1F7",marginBottom:4}},s.v),React.createElement("div",{style:{fontSize:11,color:"#6B7588"}},s.l))
+        React.createElement("div",{key:i,className:"scard",style:{textAlign:"center"}},React.createElement("div",{className:"num",style:{fontWeight:700,fontSize:16,color:s.danger?"var(--warn)":"var(--t1)",marginBottom:4}},s.v),React.createElement("div",{style:{fontSize:11,color:"var(--t4)"}},s.l))
       )
     ),
     React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 310px",gap:16}},
@@ -2194,7 +2320,7 @@ function DriverBudget({tiers,setTiers,showToast}) {
         React.createElement("div",{className:"card",style:{padding:18,marginBottom:14}},
           React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}},
             React.createElement("h3",{style:{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:14}},"Tier Uang Operasional"),
-            React.createElement("button",{className:"btn btn-p btn-sm",onClick:openAdd},React.createElement(Icon,{d:IC.plus,size:13,stroke:"#06101C"}),"Tambah")
+            React.createElement("button",{className:"btn btn-p btn-sm",onClick:openAdd},React.createElement(Icon,{d:IC.plus,size:13,stroke:"var(--accent-on)"}),"Tambah")
           ),
           (tiers||[]).map(t=>{
             const simAmt=Math.round(t.amount*(1+simPct/100)); const simTotal=simAmt*t.count;
@@ -2203,14 +2329,14 @@ function DriverBudget({tiers,setTiers,showToast}) {
               React.createElement("div",{style:{width:8,height:8,borderRadius:"50%",background:t.color,flexShrink:0}}),
               React.createElement("div",{style:{flex:1}},
                 React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:5}},
-                  React.createElement("span",{style:{fontSize:12.5,fontWeight:600,color:"#EDF1F7"}},t.name),
+                  React.createElement("span",{style:{fontSize:12.5,fontWeight:600,color:"var(--t1)"}},t.name),
                   React.createElement("span",{className:"num",style:{fontSize:12.5,fontWeight:700,color:t.color}},"Rp ",fmt(t.amount),"/orang")
                 ),
-                React.createElement("div",{style:{height:4,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden",marginBottom:5}},
+                React.createElement("div",{style:{height:4,background:"var(--border-06)",borderRadius:3,overflow:"hidden",marginBottom:5}},
                   React.createElement("div",{style:{height:"100%",width:`${barW}%`,background:t.color,borderRadius:3,transition:"width .4s"}})
                 ),
-                React.createElement("div",{style:{fontSize:11,color:"#6B7588"}},t.count," driver · Total: Rp ",fmt(t.amount*t.count)),
-                simPct>0 && React.createElement("div",{style:{fontSize:11,color:"#D69A1F",marginTop:3}},"Setelah +",simPct,"%: Rp ",fmt(simTotal)," ",React.createElement("span",{style:{color:"#E0524A"}},"+Rp ",fmt(simTotal-t.amount*t.count)))
+                React.createElement("div",{style:{fontSize:11,color:"var(--t4)"}},t.count," driver · Total: Rp ",fmt(t.amount*t.count)),
+                simPct>0 && React.createElement("div",{style:{fontSize:11,color:"var(--warn)",marginTop:3}},"Setelah +",simPct,"%: Rp ",fmt(simTotal)," ",React.createElement("span",{style:{color:"var(--danger)"}},"+Rp ",fmt(simTotal-t.amount*t.count)))
               ),
               React.createElement("div",{style:{display:"flex",gap:5}},
                 React.createElement("button",{className:"btn btn-s btn-sm",style:{padding:"5px 8px"},onClick:()=>openEdit(t)},React.createElement(Icon,{d:IC.edit,size:11})),
@@ -2223,26 +2349,26 @@ function DriverBudget({tiers,setTiers,showToast}) {
           React.createElement("h3",{style:{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:13,marginBottom:4}},"Simulasi Kenaikan"),
           React.createElement("div",{style:{display:"flex",alignItems:"center",gap:14,margin:"13px 0"}},
             React.createElement("input",{type:"range",className:"range-inp",min:0,max:50,step:1,value:simPct,onChange:e=>setSimPct(Number(e.target.value)),style:{flex:1}}),
-            React.createElement("div",{className:"num",style:{minWidth:50,textAlign:"center",fontWeight:700,fontSize:17,color:"#00B8E0"}},simPct,"%")
+            React.createElement("div",{className:"num",style:{minWidth:50,textAlign:"center",fontWeight:700,fontSize:17,color:"var(--accent)"}},simPct,"%")
           ),
           React.createElement("div",{className:"card-flat",style:{overflow:"hidden"}},
-            React.createElement("div",{style:{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",padding:"9px 12px",borderBottom:"1px solid rgba(255,255,255,0.06)"}},
-              ["Tier","Saat Ini","Setelah","Selisih"].map(h=>React.createElement("div",{key:h,style:{fontSize:10,fontWeight:600,color:"#4D5666"}},h))
+            React.createElement("div",{style:{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",padding:"9px 12px",borderBottom:"1px solid var(--border-06)"}},
+              ["Tier","Saat Ini","Setelah","Selisih"].map(h=>React.createElement("div",{key:h,style:{fontSize:10,fontWeight:600,color:"var(--t5)"}},h))
             ),
             (tiers||[]).map(t=>{
               const simAmt=Math.round(t.amount*(1+simPct/100)); const diff=simAmt*t.count-t.amount*t.count;
-              return React.createElement("div",{key:t.id,style:{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",padding:"9px 12px",borderBottom:"1px solid rgba(255,255,255,0.04)"}},
-                React.createElement("div",{style:{display:"flex",alignItems:"center",gap:7}},React.createElement("div",{style:{width:6,height:6,borderRadius:"50%",background:t.color}}),React.createElement("span",{style:{fontSize:11.5,color:"#EDF1F7"}},t.name," (",t.count,"x)")),
-                React.createElement("div",{className:"num",style:{fontSize:11.5,color:"#8A95A8"}},"Rp ",fmt(t.amount*t.count)),
+              return React.createElement("div",{key:t.id,style:{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",padding:"9px 12px",borderBottom:"1px solid var(--border-04)"}},
+                React.createElement("div",{style:{display:"flex",alignItems:"center",gap:7}},React.createElement("div",{style:{width:6,height:6,borderRadius:"50%",background:t.color}}),React.createElement("span",{style:{fontSize:11.5,color:"var(--t1)"}},t.name," (",t.count,"x)")),
+                React.createElement("div",{className:"num",style:{fontSize:11.5,color:"var(--t3)"}},"Rp ",fmt(t.amount*t.count)),
                 React.createElement("div",{className:"num",style:{fontSize:11.5,fontWeight:600,color:t.color}},"Rp ",fmt(simAmt*t.count)),
-                React.createElement("div",{className:"num",style:{fontSize:11.5,fontWeight:700,color:"#E0524A"}},"+Rp ",fmt(diff))
+                React.createElement("div",{className:"num",style:{fontSize:11.5,fontWeight:700,color:"var(--danger)"}},"+Rp ",fmt(diff))
               );
             }),
             React.createElement("div",{style:{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",padding:"11px 12px",background:"rgba(0,184,224,0.04)",borderTop:"1px solid rgba(0,184,224,0.14)"}},
-              React.createElement("div",{style:{fontSize:12,fontWeight:700,color:"#EDF1F7"}},"TOTAL"),
-              React.createElement("div",{className:"num",style:{fontSize:12,fontWeight:700,color:"#EDF1F7"}},"Rp ",fmt(totalNow)),
-              React.createElement("div",{className:"num",style:{fontSize:12,fontWeight:700,color:"#00B8E0"}},"Rp ",fmt(totalSim)),
-              React.createElement("div",{className:"num",style:{fontSize:12,fontWeight:800,color:"#E0524A"}},"+Rp ",fmt(totalSim-totalNow))
+              React.createElement("div",{style:{fontSize:12,fontWeight:700,color:"var(--t1)"}},"TOTAL"),
+              React.createElement("div",{className:"num",style:{fontSize:12,fontWeight:700,color:"var(--t1)"}},"Rp ",fmt(totalNow)),
+              React.createElement("div",{className:"num",style:{fontSize:12,fontWeight:700,color:"var(--accent)"}},"Rp ",fmt(totalSim)),
+              React.createElement("div",{className:"num",style:{fontSize:12,fontWeight:800,color:"var(--danger)"}},"+Rp ",fmt(totalSim-totalNow))
             )
           )
         )
@@ -2251,14 +2377,14 @@ function DriverBudget({tiers,setTiers,showToast}) {
         React.createElement("div",{className:"card",style:{padding:17}},
           React.createElement("h3",{style:{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:13,marginBottom:13}},"Anggaran per Tier/Bulan"),
           (tiers||[]).map(t=>React.createElement("div",{key:t.id,style:{marginBottom:13}},
-            React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:4}},React.createElement("span",{style:{fontSize:11.5,color:"#AEB8C9",fontWeight:600}},t.name),React.createElement("span",{style:{fontSize:11.5,color:t.color,fontWeight:700}},t.count," driver")),
-            React.createElement("div",{className:"num",style:{fontSize:17,fontWeight:700,color:"#EDF1F7",marginBottom:2}},"Rp ",fmt(t.amount*t.count),React.createElement("span",{style:{fontSize:10,fontWeight:400,color:"#4D5666"}},"/bln")),
-            React.createElement("div",{style:{fontSize:10.5,color:"#6B7588",marginBottom:6}},"Rp ",fmt(t.amount),"/orang × ",t.count),
-            React.createElement("div",{style:{height:3,background:"rgba(255,255,255,0.06)",borderRadius:2,overflow:"hidden"}},React.createElement("div",{style:{height:"100%",width:totalNow>0?`${(t.amount*t.count/totalNow*100).toFixed(0)}%`:"0%",background:t.color,borderRadius:2}}))
+            React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:4}},React.createElement("span",{style:{fontSize:11.5,color:"var(--t2)",fontWeight:600}},t.name),React.createElement("span",{style:{fontSize:11.5,color:t.color,fontWeight:700}},t.count," driver")),
+            React.createElement("div",{className:"num",style:{fontSize:17,fontWeight:700,color:"var(--t1)",marginBottom:2}},"Rp ",fmt(t.amount*t.count),React.createElement("span",{style:{fontSize:10,fontWeight:400,color:"var(--t5)"}},"/bln")),
+            React.createElement("div",{style:{fontSize:10.5,color:"var(--t4)",marginBottom:6}},"Rp ",fmt(t.amount),"/orang × ",t.count),
+            React.createElement("div",{style:{height:3,background:"var(--border-06)",borderRadius:2,overflow:"hidden"}},React.createElement("div",{style:{height:"100%",width:totalNow>0?`${(t.amount*t.count/totalNow*100).toFixed(0)}%`:"0%",background:t.color,borderRadius:2}}))
           )),
-          React.createElement("div",{style:{borderTop:"1px solid rgba(255,255,255,0.07)",paddingTop:11,marginTop:4}},
-            React.createElement("div",{style:{display:"flex",justifyContent:"space-between"}},React.createElement("span",{style:{fontSize:11.5,color:"#6B7588"}},"Total/Bulan"),React.createElement("span",{className:"num",style:{fontWeight:700,fontSize:15,color:"#00B8E0"}},"Rp ",fmt(totalNow))),
-            React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginTop:5}},React.createElement("span",{style:{fontSize:11.5,color:"#6B7588"}},"Per Tahun"),React.createElement("span",{className:"num",style:{fontWeight:700,fontSize:12,color:"#8A95A8"}},"Rp ",fmt(totalNow*12)))
+          React.createElement("div",{style:{borderTop:"1px solid var(--border)",paddingTop:11,marginTop:4}},
+            React.createElement("div",{style:{display:"flex",justifyContent:"space-between"}},React.createElement("span",{style:{fontSize:11.5,color:"var(--t4)"}},"Total/Bulan"),React.createElement("span",{className:"num",style:{fontWeight:700,fontSize:15,color:"var(--accent)"}},"Rp ",fmt(totalNow))),
+            React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginTop:5}},React.createElement("span",{style:{fontSize:11.5,color:"var(--t4)"}},"Per Tahun"),React.createElement("span",{className:"num",style:{fontWeight:700,fontSize:12,color:"var(--t3)"}},"Rp ",fmt(totalNow*12)))
           )
         )
       )
@@ -2270,28 +2396,28 @@ function DriverBudget({tiers,setTiers,showToast}) {
           React.createElement("button",{className:"btn btn-s btn-sm",style:{padding:"6px 9px"},onClick:()=>setShowAdd(false)},React.createElement(Icon,{d:IC.x,size:13}))
         ),
         React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:12}},
-          React.createElement("div",null,React.createElement("label",{style:{fontSize:11,color:"#6B7588",fontWeight:600,display:"block",marginBottom:6}},"NAMA TIER"),React.createElement("input",{className:"inp",placeholder:"mis: Senior Driver",value:form.name,onChange:e=>setForm(p=>({...p,name:e.target.value}))})),
-          React.createElement("div",null,React.createElement("label",{style:{fontSize:11,color:"#6B7588",fontWeight:600,display:"block",marginBottom:8}},"WARNA"),React.createElement("div",{style:{display:"flex",gap:8,flexWrap:"wrap"}},PALETTE.map(c=>React.createElement("div",{key:c,onClick:()=>setForm(p=>({...p,color:c})),style:{width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",border:form.color===c?"2px solid #fff":"2px solid transparent",transition:"border .15s"}})))),
-          React.createElement("div",null,React.createElement("label",{style:{fontSize:11,color:"#6B7588",fontWeight:600,display:"block",marginBottom:6}},"NOMINAL / ORANG / BULAN (Rp)"),React.createElement(ExprInput,{value:form.amount,onChange:v=>setForm(p=>({...p,amount:v})),placeholder:"mis: 2000000"})),
-          React.createElement("div",null,React.createElement("label",{style:{fontSize:11,color:"#6B7588",fontWeight:600,display:"block",marginBottom:6}},"JUMLAH DRIVER"),React.createElement("input",{type:"number",className:"inp",min:1,max:50,value:form.count,onChange:e=>setForm(p=>({...p,count:e.target.value}))}))
+          React.createElement("div",null,React.createElement("label",{style:{fontSize:11,color:"var(--t4)",fontWeight:600,display:"block",marginBottom:6}},"NAMA TIER"),React.createElement("input",{className:"inp",placeholder:"mis: Senior Driver",value:form.name,onChange:e=>setForm(p=>({...p,name:e.target.value}))})),
+          React.createElement("div",null,React.createElement("label",{style:{fontSize:11,color:"var(--t4)",fontWeight:600,display:"block",marginBottom:8}},"WARNA"),React.createElement("div",{style:{display:"flex",gap:8,flexWrap:"wrap"}},PALETTE.map(c=>React.createElement("div",{key:c,onClick:()=>setForm(p=>({...p,color:c})),style:{width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",border:form.color===c?"2px solid #fff":"2px solid transparent",transition:"border .15s"}})))),
+          React.createElement("div",null,React.createElement("label",{style:{fontSize:11,color:"var(--t4)",fontWeight:600,display:"block",marginBottom:6}},"NOMINAL / ORANG / BULAN (Rp)"),React.createElement(ExprInput,{value:form.amount,onChange:v=>setForm(p=>({...p,amount:v})),placeholder:"mis: 2000000"})),
+          React.createElement("div",null,React.createElement("label",{style:{fontSize:11,color:"var(--t4)",fontWeight:600,display:"block",marginBottom:6}},"JUMLAH DRIVER"),React.createElement("input",{type:"number",className:"inp",min:1,max:50,value:form.count,onChange:e=>setForm(p=>({...p,count:e.target.value}))}))
         ),
         React.createElement("div",{style:{margin:"15px 0 0",padding:"11px 13px",background:"rgba(0,184,224,0.05)",border:"1px solid rgba(0,184,224,0.16)",borderRadius:9,display:"flex",justifyContent:"space-between",alignItems:"center"}},
-          React.createElement("span",{style:{fontSize:11.5,color:"#6B7588"}},"Total tier/bulan"),
-          React.createElement("span",{className:"num",style:{fontWeight:700,fontSize:15,color:"#00B8E0"}},evalExpr(form.amount)&&parseInt(form.count)?"Rp "+fmt(evalExpr(form.amount)*parseInt(form.count)):"—")
+          React.createElement("span",{style:{fontSize:11.5,color:"var(--t4)"}},"Total tier/bulan"),
+          React.createElement("span",{className:"num",style:{fontWeight:700,fontSize:15,color:"var(--accent)"}},evalExpr(form.amount)&&parseInt(form.count)?"Rp "+fmt(evalExpr(form.amount)*parseInt(form.count)):"—")
         ),
         React.createElement("div",{style:{display:"flex",gap:9,marginTop:15}},
           React.createElement("button",{className:"btn btn-s",style:{flex:1},onClick:()=>setShowAdd(false)},"Batal"),
-          React.createElement("button",{className:"btn btn-p",style:{flex:1},onClick:saveTier},React.createElement(Icon,{d:IC.check,size:13,stroke:"#06101C"}),"Simpan")
+          React.createElement("button",{className:"btn btn-p",style:{flex:1},onClick:saveTier},React.createElement(Icon,{d:IC.check,size:13,stroke:"var(--accent-on)"}),"Simpan")
         )
       )
     ),
     confirmDel && React.createElement("div",{className:"overlay",onClick:e=>e.target===e.currentTarget&&setConfirmDel(null)},
       React.createElement("div",{className:"modal",style:{maxWidth:360,textAlign:"center"}},
         React.createElement("div",{style:{width:48,height:48,borderRadius:"50%",background:"rgba(224,82,74,0.1)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}},
-          React.createElement(Icon,{d:IC.trash,size:22,stroke:"#E0524A"})
+          React.createElement(Icon,{d:IC.trash,size:22,stroke:"var(--danger)"})
         ),
         React.createElement("h2",{style:{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:16,marginBottom:7}},"Hapus Tier?"),
-        React.createElement("p",{style:{fontSize:12,color:"#6B7588",marginBottom:18,lineHeight:1.6}},"Tier ",React.createElement("b",{style:{color:"#EDF1F7"}},confirmDel.name)," akan dihapus permanen."),
+        React.createElement("p",{style:{fontSize:12,color:"var(--t4)",marginBottom:18,lineHeight:1.6}},"Tier ",React.createElement("b",{style:{color:"var(--t1)"}},confirmDel.name)," akan dihapus permanen."),
         React.createElement("div",{style:{display:"flex",gap:9}},
           React.createElement("button",{className:"btn btn-s",style:{flex:1},onClick:()=>setConfirmDel(null)},"Batal"),
           React.createElement("button",{className:"btn btn-d",style:{flex:1,justifyContent:"center",padding:"10px"},onClick:()=>delTier(confirmDel.id)},React.createElement(Icon,{d:IC.trash,size:13}),"Ya, Hapus")
@@ -2361,17 +2487,17 @@ function OpFund({ kantong, setKantong, showToast }) {
   };
 
   const row = (label, sub, value, col) => React.createElement("div", { style:{ padding:"15px 22px" } },
-    React.createElement("div", { style:{ fontSize:10.5, fontWeight:600, color:"#6B7588", textTransform:"uppercase", letterSpacing:"0.5px" } }, label),
-    sub && React.createElement("div", { style:{ fontSize:10, color:"#4D5666", marginTop:1 } }, sub),
-    React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:18, color:col||"#EDF1F7", marginTop:6 } }, `Rp ${fmt(value)}`)
+    React.createElement("div", { style:{ fontSize:10.5, fontWeight:600, color:"var(--t4)", textTransform:"uppercase", letterSpacing:"0.5px" } }, label),
+    sub && React.createElement("div", { style:{ fontSize:10, color:"var(--t5)", marginTop:1 } }, sub),
+    React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:18, color:col||"var(--t1)", marginTop:6 } }, `Rp ${fmt(value)}`)
   );
 
   return React.createElement("div", null,
 
     React.createElement("div", { style:{ display:"flex", gap:9, marginBottom:18, alignItems:"center", flexWrap:"wrap" } },
-      React.createElement("div", { style:{ flex:1, fontSize:12, color:"#4D5666" } },
-        "Periode: ", React.createElement("span", { style:{ color:"#AEB8C9", fontWeight:600 } }, kantong?.period || "—"),
-        " · Reset: ", React.createElement("span", { style:{ color:"#AEB8C9" } }, fmtDate(kantong?.lastReset || ""))
+      React.createElement("div", { style:{ flex:1, fontSize:12, color:"var(--t5)" } },
+        "Periode: ", React.createElement("span", { style:{ color:"var(--t2)", fontWeight:600 } }, kantong?.period || "—"),
+        " · Reset: ", React.createElement("span", { style:{ color:"var(--t2)" } }, fmtDate(kantong?.lastReset || ""))
       ),
       React.createElement("button", { className:"btn btn-s btn-sm", onClick:()=>setShowEdit(true) }, React.createElement(Icon, { d:IC.edit, size:12 }), "Edit Nilai"),
       React.createElement("button", { className:"btn btn-d btn-sm", onClick:()=>setShowReset(true) }, React.createElement(Icon, { d:IC.refresh, size:12 }), "Reset Periode")
@@ -2379,50 +2505,50 @@ function OpFund({ kantong, setKantong, showToast }) {
 
     React.createElement("div", { className:"card", style:{ borderRadius:14, overflow:"hidden", marginBottom:18 } },
 
-      React.createElement("div", { style:{ padding:"19px 22px", borderBottom:"1px solid rgba(255,255,255,0.06)" } },
-        React.createElement("div", { style:{ fontSize:11, fontWeight:600, color:"#6B7588", textTransform:"uppercase", letterSpacing:"0.6px", marginBottom:7 } }, "Total Cash Operational (A)"),
-        React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:28, color:"#00B8E0", lineHeight:1 } }, `Rp ${fmt(totalBudget)}`)
+      React.createElement("div", { style:{ padding:"19px 22px", borderBottom:"1px solid var(--border-06)" } },
+        React.createElement("div", { style:{ fontSize:11, fontWeight:600, color:"var(--t4)", textTransform:"uppercase", letterSpacing:"0.6px", marginBottom:7 } }, "Total Cash Operational (A)"),
+        React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:28, color:"var(--accent)", lineHeight:1 } }, `Rp ${fmt(totalBudget)}`)
       ),
 
-      React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:0, borderBottom:"1px solid rgba(255,255,255,0.05)" } },
-        row("Op Driver (A1)", "Alokasi — editable", allocOpDriver, "#D69A1F"),
-        row("Emergency (A2)", "Alokasi — editable", allocEmergency, "#E0524A")
+      React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:0, borderBottom:"1px solid var(--border-05)" } },
+        row("Op Driver (A1)", "Alokasi — editable", allocOpDriver, "var(--warn)"),
+        row("Emergency (A2)", "Alokasi — editable", allocEmergency, "var(--danger)")
       ),
 
-      React.createElement("div", { style:{ padding:"13px 22px", background:"rgba(255,255,255,0.02)", borderBottom:"1px solid rgba(255,255,255,0.05)", display:"flex", justifyContent:"space-between", alignItems:"center" } },
+      React.createElement("div", { style:{ padding:"13px 22px", background:"var(--border-02)", borderBottom:"1px solid var(--border-05)", display:"flex", justifyContent:"space-between", alignItems:"center" } },
         React.createElement("div", null,
-          React.createElement("div", { style:{ fontSize:10.5, fontWeight:600, color:"#6B7588", textTransform:"uppercase", letterSpacing:"0.5px" } }, "Total Alokasi (A3)"),
-          React.createElement("div", { style:{ fontSize:10, color:"#4D5666", marginTop:1 } }, "A1 + A2 — otomatis")
+          React.createElement("div", { style:{ fontSize:10.5, fontWeight:600, color:"var(--t4)", textTransform:"uppercase", letterSpacing:"0.5px" } }, "Total Alokasi (A3)"),
+          React.createElement("div", { style:{ fontSize:10, color:"var(--t5)", marginTop:1 } }, "A1 + A2 — otomatis")
         ),
-        React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:15, color:"#AEB8C9" } }, `Rp ${fmt(totalAlokasi)}`)
+        React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:15, color:"var(--t2)" } }, `Rp ${fmt(totalAlokasi)}`)
       ),
 
-      React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:0, borderBottom:"1px solid rgba(255,255,255,0.05)" } },
-        row("Cash Available (A4)", "Editable", cashAvailable, "#1FAE6E"),
-        row("Claim Diajukan (A5)", "Ke Finance — editable", claimSubmitted, "#00B8E0"),
-        row("Claim Dibayar (A6)", "Oleh Finance — editable", claimPaid, "#8A95A8")
+      React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:0, borderBottom:"1px solid var(--border-05)" } },
+        row("Cash Available (A4)", "Editable", cashAvailable, "var(--ok)"),
+        row("Claim Diajukan (A5)", "Ke Finance — editable", claimSubmitted, "var(--accent)"),
+        row("Claim Dibayar (A6)", "Oleh Finance — editable", claimPaid, "var(--t3)")
       ),
 
-      React.createElement("div", { style:{ padding:"16px 22px", background:"rgba(0,184,224,0.03)", borderBottom:"1px solid rgba(255,255,255,0.05)", display:"flex", justifyContent:"space-between", alignItems:"center" } },
+      React.createElement("div", { style:{ padding:"16px 22px", background:"rgba(0,184,224,0.03)", borderBottom:"1px solid var(--border-05)", display:"flex", justifyContent:"space-between", alignItems:"center" } },
         React.createElement("div", null,
-          React.createElement("div", { style:{ fontSize:10.5, fontWeight:600, color:"#00B8E0", textTransform:"uppercase", letterSpacing:"0.5px" } }, "Outstanding Cash Operational (B)"),
-          React.createElement("div", { style:{ fontSize:10, color:"#4D5666", marginTop:1 } }, "A3 + A4 + A5 + A6 — otomatis")
+          React.createElement("div", { style:{ fontSize:10.5, fontWeight:600, color:"var(--accent)", textTransform:"uppercase", letterSpacing:"0.5px" } }, "Outstanding Cash Operational (B)"),
+          React.createElement("div", { style:{ fontSize:10, color:"var(--t5)", marginTop:1 } }, "A3 + A4 + A5 + A6 — otomatis")
         ),
-        React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:18, color:"#00B8E0" } }, `Rp ${fmt(outstanding)}`)
+        React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:18, color:"var(--accent)" } }, `Rp ${fmt(outstanding)}`)
       ),
 
       React.createElement("div", { style:{ padding:"18px 22px", display:"flex", justifyContent:"space-between", alignItems:"center",
         background: gap === 0 ? "rgba(31,174,110,0.05)" : gap > 0 ? "rgba(214,154,31,0.05)" : "rgba(224,82,74,0.05)" } },
         React.createElement("div", null,
-          React.createElement("div", { style:{ fontSize:11, fontWeight:700, color:"#6B7588", textTransform:"uppercase", letterSpacing:"0.5px" } }, "GAP = B − A"),
-          React.createElement("div", { style:{ fontSize:11, color:"#4D5666", marginTop:3 } },
+          React.createElement("div", { style:{ fontSize:11, fontWeight:700, color:"var(--t4)", textTransform:"uppercase", letterSpacing:"0.5px" } }, "GAP = B − A"),
+          React.createElement("div", { style:{ fontSize:11, color:"var(--t5)", marginTop:3 } },
             gap === 0 ? "Sesuai — outstanding sama dengan total cash" :
             gap > 0   ? `Outstanding melebihi total cash sebesar Rp ${fmt(gap)}` :
                         `Outstanding di bawah total cash sebesar Rp ${fmt(Math.abs(gap))}`
           )
         ),
         React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:23,
-          color: gap === 0 ? "#1FAE6E" : gap > 0 ? "#D69A1F" : "#E0524A" } },
+          color: gap === 0 ? "var(--ok)" : gap > 0 ? "var(--warn)" : "var(--danger)" } },
           `${gap >= 0 ? "+" : ""}Rp ${fmt(gap)}`
         )
       )
@@ -2435,14 +2561,14 @@ function OpFund({ kantong, setKantong, showToast }) {
           React.createElement("button", { className:"btn btn-s btn-sm", style:{ padding:"6px 9px" }, onClick:()=>setShowEdit(false) }, React.createElement(Icon, { d:IC.x, size:13 }))
         ),
         React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:13 } },
-          React.createElement("div", null, React.createElement("label", { style:{ fontSize:11, color:"#00B8E0", fontWeight:600, display:"block", marginBottom:5 } }, "TOTAL CASH OPERATIONAL (A)"), React.createElement(ExprInput, { value:eBudget, onChange:setEBudget, placeholder:"mis: 48000000" })),
-          React.createElement("div", { style:{ height:1, background:"rgba(255,255,255,0.06)" } }),
-          React.createElement("div", null, React.createElement("label", { style:{ fontSize:11, color:"#D69A1F", fontWeight:600, display:"block", marginBottom:5 } }, "OP DRIVER (A1)"), React.createElement(ExprInput, { value:eOpDriver, onChange:setEOpDriver, placeholder:"mis: 9000000" })),
-          React.createElement("div", null, React.createElement("label", { style:{ fontSize:11, color:"#E0524A", fontWeight:600, display:"block", marginBottom:5 } }, "EMERGENCY (A2)"), React.createElement(ExprInput, { value:eEmergency, onChange:setEEmergency, placeholder:"mis: 1500000" })),
-          React.createElement("div", { style:{ height:1, background:"rgba(255,255,255,0.06)" } }),
-          React.createElement("div", null, React.createElement("label", { style:{ fontSize:11, color:"#1FAE6E", fontWeight:600, display:"block", marginBottom:5 } }, "CASH AVAILABLE (A4)"), React.createElement(ExprInput, { value:eCash, onChange:setECash, placeholder:"mis: 20000000" })),
-          React.createElement("div", null, React.createElement("label", { style:{ fontSize:11, color:"#00B8E0", fontWeight:600, display:"block", marginBottom:5 } }, "CLAIM DIAJUKAN KE FINANCE (A5)"), React.createElement(ExprInput, { value:eSubmitted, onChange:setESubmitted, placeholder:"mis: 7500000" })),
-          React.createElement("div", null, React.createElement("label", { style:{ fontSize:11, color:"#8A95A8", fontWeight:600, display:"block", marginBottom:5 } }, "CLAIM SUDAH DIBAYAR FINANCE (A6)"), React.createElement(ExprInput, { value:ePaid, onChange:setEPaid, placeholder:"mis: 10000000" }))
+          React.createElement("div", null, React.createElement("label", { style:{ fontSize:11, color:"var(--accent)", fontWeight:600, display:"block", marginBottom:5 } }, "TOTAL CASH OPERATIONAL (A)"), React.createElement(ExprInput, { value:eBudget, onChange:setEBudget, placeholder:"mis: 48000000" })),
+          React.createElement("div", { style:{ height:1, background:"var(--border-06)" } }),
+          React.createElement("div", null, React.createElement("label", { style:{ fontSize:11, color:"var(--warn)", fontWeight:600, display:"block", marginBottom:5 } }, "OP DRIVER (A1)"), React.createElement(ExprInput, { value:eOpDriver, onChange:setEOpDriver, placeholder:"mis: 9000000" })),
+          React.createElement("div", null, React.createElement("label", { style:{ fontSize:11, color:"var(--danger)", fontWeight:600, display:"block", marginBottom:5 } }, "EMERGENCY (A2)"), React.createElement(ExprInput, { value:eEmergency, onChange:setEEmergency, placeholder:"mis: 1500000" })),
+          React.createElement("div", { style:{ height:1, background:"var(--border-06)" } }),
+          React.createElement("div", null, React.createElement("label", { style:{ fontSize:11, color:"var(--ok)", fontWeight:600, display:"block", marginBottom:5 } }, "CASH AVAILABLE (A4)"), React.createElement(ExprInput, { value:eCash, onChange:setECash, placeholder:"mis: 20000000" })),
+          React.createElement("div", null, React.createElement("label", { style:{ fontSize:11, color:"var(--accent)", fontWeight:600, display:"block", marginBottom:5 } }, "CLAIM DIAJUKAN KE FINANCE (A5)"), React.createElement(ExprInput, { value:eSubmitted, onChange:setESubmitted, placeholder:"mis: 7500000" })),
+          React.createElement("div", null, React.createElement("label", { style:{ fontSize:11, color:"var(--t3)", fontWeight:600, display:"block", marginBottom:5 } }, "CLAIM SUDAH DIBAYAR FINANCE (A6)"), React.createElement(ExprInput, { value:ePaid, onChange:setEPaid, placeholder:"mis: 10000000" }))
         ),
 
         (() => {
@@ -2459,23 +2585,23 @@ function OpFund({ kantong, setKantong, showToast }) {
             background: pGap === 0 ? "rgba(31,174,110,0.06)" : pGap > 0 ? "rgba(214,154,31,0.05)" : "rgba(224,82,74,0.06)",
             border:`1px solid ${pGap===0?"rgba(31,174,110,0.18)":pGap>0?"rgba(214,154,31,0.18)":"rgba(224,82,74,0.18)"}` } },
             React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", marginBottom:5 } },
-              React.createElement("span", { style:{ color:"#6B7588" } }, "Total Alokasi (A3):"),
-              React.createElement("span", { className:"num", style:{ fontWeight:700, color:"#EDF1F7" } }, `Rp ${fmt(pA3)}`)
+              React.createElement("span", { style:{ color:"var(--t4)" } }, "Total Alokasi (A3):"),
+              React.createElement("span", { className:"num", style:{ fontWeight:700, color:"var(--t1)" } }, `Rp ${fmt(pA3)}`)
             ),
             React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", marginBottom:5 } },
-              React.createElement("span", { style:{ color:"#6B7588" } }, "Outstanding (B):"),
-              React.createElement("span", { className:"num", style:{ fontWeight:700, color:"#00B8E0" } }, `Rp ${fmt(pB)}`)
+              React.createElement("span", { style:{ color:"var(--t4)" } }, "Outstanding (B):"),
+              React.createElement("span", { className:"num", style:{ fontWeight:700, color:"var(--accent)" } }, `Rp ${fmt(pB)}`)
             ),
-            React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:6, marginTop:2 } },
-              React.createElement("span", { style:{ color:"#6B7588" } }, "GAP:"),
-              React.createElement("span", { className:"num", style:{ fontWeight:800, fontSize:13, color: pGap===0?"#1FAE6E":pGap>0?"#D69A1F":"#E0524A" } }, `${pGap>=0?"+":""}Rp ${fmt(pGap)}`)
+            React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", borderTop:"1px solid var(--border-06)", paddingTop:6, marginTop:2 } },
+              React.createElement("span", { style:{ color:"var(--t4)" } }, "GAP:"),
+              React.createElement("span", { className:"num", style:{ fontWeight:800, fontSize:13, color: pGap===0?"var(--ok)":pGap>0?"var(--warn)":"var(--danger)" } }, `${pGap>=0?"+":""}Rp ${fmt(pGap)}`)
             )
           );
         })(),
 
         React.createElement("div", { style:{ display:"flex", gap:9, marginTop:15 } },
           React.createElement("button", { className:"btn btn-s", style:{ flex:1 }, onClick:()=>setShowEdit(false) }, "Batal"),
-          React.createElement("button", { className:"btn btn-p", style:{ flex:1 }, onClick:saveEdit }, React.createElement(Icon, { d:IC.check, size:13, stroke:"#06101C" }), "Simpan")
+          React.createElement("button", { className:"btn btn-p", style:{ flex:1 }, onClick:saveEdit }, React.createElement(Icon, { d:IC.check, size:13, stroke:"var(--accent-on)" }), "Simpan")
         )
       )
     ),
@@ -2483,10 +2609,10 @@ function OpFund({ kantong, setKantong, showToast }) {
     showReset && React.createElement("div", { className:"overlay", onClick:e=>e.target===e.currentTarget&&setShowReset(false) },
       React.createElement("div", { className:"modal", style:{ maxWidth:360, textAlign:"center" } },
         React.createElement("div", { style:{ width:52, height:52, borderRadius:"50%", background:"rgba(224,82,74,0.1)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px" } },
-          React.createElement(Icon, { d:IC.refresh, size:24, stroke:"#E0524A" })
+          React.createElement(Icon, { d:IC.refresh, size:24, stroke:"var(--danger)" })
         ),
         React.createElement("h2", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:16, marginBottom:8 } }, "Reset Periode?"),
-        React.createElement("p", { style:{ fontSize:12, color:"#6B7588", marginBottom:18, lineHeight:1.6 } }, "Claim Diajukan (A5) dan Claim Dibayar (A6) akan direset ke 0. Total cash dan alokasi tetap sama."),
+        React.createElement("p", { style:{ fontSize:12, color:"var(--t4)", marginBottom:18, lineHeight:1.6 } }, "Claim Diajukan (A5) dan Claim Dibayar (A6) akan direset ke 0. Total cash dan alokasi tetap sama."),
         React.createElement("div", { style:{ display:"flex", gap:9 } },
           React.createElement("button", { className:"btn btn-s", style:{ flex:1 }, onClick:()=>setShowReset(false) }, "Batal"),
           React.createElement("button", { className:"btn btn-d", style:{ flex:1, justifyContent:"center", padding:"10px" }, onClick:doReset }, React.createElement(Icon, { d:IC.refresh, size:12 }), "Ya, Reset")
