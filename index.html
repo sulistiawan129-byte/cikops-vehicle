@@ -125,6 +125,16 @@ async function syncToGAS(action, payload) {
   if (!GAS_URL) return;
   gasCall(action, payload).catch(e => console.error("Sync bg error:", e));
 }
+// Same as syncToGAS but resolves to true/false instead of firing-and-forgetting.
+// Used where the UI needs to warn the user clearly when a save silently
+// failed to persist to the backend (e.g. because a required sheet doesn't
+// exist yet) — most callers don't need this and should keep using the
+// fire-and-forget syncToGAS above to avoid blocking the UI on every save.
+async function syncToGASChecked(action, payload) {
+  if (!GAS_URL) return true; // no backend configured = nothing to fail, local-only mode
+  const result = await gasCall(action, payload);
+  return result !== null;
+}
 
 // ─── ICON COMPONENT ────────────────────────────────────────────────────────
 const Icon = ({d, size=20, stroke="currentColor", fill="none", sw=1.8}) =>
@@ -1131,6 +1141,166 @@ function Claims({claims,setClaims,drivers,showToast,gasReady}) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// POM BENSIN — shared stats + sketch helpers (used by both the inline
+// infographic and the PDF export, so the numbers always match exactly)
+// ═══════════════════════════════════════════════════════════
+function computeFuelStats(stations) {
+  const total = stations.length;
+
+  // Per-fuel availability count
+  const fuelCounts = FUEL_TYPES_LIST.map(type => {
+    const count = stations.filter(s => (s.fuels||[]).some(f => f.type===type && f.available)).length;
+    return { type, count, pct: total>0 ? (count/total*100) : 0 };
+  }).sort((a,b) => b.count - a.count);
+
+  const uniqueFuelTypesAvailable = fuelCounts.filter(f => f.count > 0).length;
+  const avgFuelsPerStation = total>0
+    ? stations.reduce((s,st) => s + (st.fuels||[]).filter(f=>f.available).length, 0) / total
+    : 0;
+  const noDataCount = stations.filter(s => !(s.fuels||[]).length || (s.fuels||[]).every(f=>!f.available)).length;
+
+  // Data completeness: a station counts as "filled in" per fuel type if
+  // that type appears in its fuels array at all (true or false — meaning
+  // the user has actually reviewed/toggled it), not just default state.
+  let complete = 0, partial = 0, empty = 0;
+  stations.forEach(s => {
+    const filledCount = (s.fuels||[]).length;
+    if (filledCount === 0) empty++;
+    else if (filledCount >= FUEL_TYPES_LIST.length) complete++;
+    else partial++;
+  });
+
+  // Monthly trend from createdAt, last 6 months that have any data
+  const monthMap = {};
+  stations.forEach(s => {
+    if (!s.createdAt) return;
+    const d = new Date(s.createdAt);
+    if (isNaN(d)) return;
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    monthMap[key] = (monthMap[key]||0) + 1;
+  });
+  const trend = Object.entries(monthMap).sort((a,b)=>a[0]<b[0]?-1:1).slice(-6).map(([key,count]) => {
+    const [y,m] = key.split('-');
+    return { key, label: MONTHS[parseInt(m)-1].slice(0,3)+' '+y.slice(2), count };
+  });
+
+  return { total, fuelCounts, uniqueFuelTypesAvailable, avgFuelsPerStation, noDataCount, complete, partial, empty, trend };
+}
+
+// Renders a dependency-free location sketch (NOT a real map tile screenshot
+// — deliberately avoided due to cross-origin tile loading risks inside a
+// PDF export pipeline). Plots each station's lat/lng proportionally inside
+// a canvas with a reference grid, north arrow, and numbered pins, returning
+// a PNG data URL ready for jsPDF's addImage().
+function drawStationSketch(stations, opts) {
+  const W = (opts && opts.width)  || 900;
+  const H = (opts && opts.height) || 620;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, W, H);
+
+  const pad = 60;
+  const plotW = W - pad*2;
+  const plotH = H - pad*2 - 40; // leave room for scale bar at bottom
+
+  const valid = stations.filter(s => isFinite(s.lat) && isFinite(s.lng));
+  if (valid.length === 0) {
+    ctx.fillStyle = '#94A3B8';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Belum ada titik SPBU untuk ditampilkan', W/2, H/2);
+    return canvas.toDataURL('image/png');
+  }
+
+  let minLat = Math.min(...valid.map(s=>s.lat)), maxLat = Math.max(...valid.map(s=>s.lat));
+  let minLng = Math.min(...valid.map(s=>s.lng)), maxLng = Math.max(...valid.map(s=>s.lng));
+  // Guard against a degenerate (zero-span) bounding box when all points
+  // share the same coordinate, or there's only one station.
+  if (maxLat - minLat < 0.002) { const c=(maxLat+minLat)/2; minLat=c-0.01; maxLat=c+0.01; }
+  if (maxLng - minLng < 0.002) { const c=(maxLng+minLng)/2; minLng=c-0.01; maxLng=c+0.01; }
+  // Add 12% padding around the bounding box so edge points aren't flush
+  // against the frame.
+  const latPad = (maxLat-minLat)*0.12, lngPad = (maxLng-minLng)*0.12;
+  minLat -= latPad; maxLat += latPad; minLng -= lngPad; maxLng += lngPad;
+
+  function project(lat, lng) {
+    const x = pad + ((lng - minLng) / (maxLng - minLng)) * plotW;
+    const y = pad + (1 - (lat - minLat) / (maxLat - minLat)) * plotH; // lat increases upward
+    return [x, y];
+  }
+
+  // Frame
+  ctx.strokeStyle = '#CED3E3';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(pad, pad, plotW, plotH);
+
+  // Reference grid (5x5) with faint lines
+  ctx.strokeStyle = '#E8EBF2';
+  ctx.lineWidth = 1;
+  for (let i=1; i<5; i++) {
+    const gx = pad + (plotW/5)*i;
+    ctx.beginPath(); ctx.moveTo(gx, pad); ctx.lineTo(gx, pad+plotH); ctx.stroke();
+    const gy = pad + (plotH/5)*i;
+    ctx.beginPath(); ctx.moveTo(pad, gy); ctx.lineTo(pad+plotW, gy); ctx.stroke();
+  }
+
+  // North arrow (top-right of frame)
+  const naX = pad + plotW - 24, naY = pad + 28;
+  ctx.strokeStyle = '#546391'; ctx.fillStyle = '#546391'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(naX, naY+18); ctx.lineTo(naX, naY-10); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(naX, naY-16); ctx.lineTo(naX-6, naY-6); ctx.lineTo(naX+6, naY-6); ctx.closePath(); ctx.fill();
+  ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center';
+  ctx.fillText('U', naX, naY+32);
+
+  // Plot points, numbered
+  valid.forEach((s, i) => {
+    const [x, y] = project(s.lat, s.lng);
+    const hasFuel = (s.fuels||[]).some(f=>f.available);
+    ctx.fillStyle = hasFuel ? '#00748F' : '#C28A1A';
+    ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(i+1), x, y+0.5);
+  });
+  ctx.textBaseline = 'alphabetic';
+
+  // Approximate scale bar — haversine distance across the full plotted
+  // width at the vertical midpoint of the bounding box, then converted to
+  // a round-number reference segment.
+  function haversineKm(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2-lat1) * Math.PI/180, dLng = (lng2-lng1) * Math.PI/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+  const midLat = (minLat+maxLat)/2;
+  const fullWidthKm = haversineKm(midLat, minLng, midLat, maxLng);
+  const pxPerKm = fullWidthKm > 0 ? plotW / fullWidthKm : 0;
+  // Pick a clean round km value that's roughly a quarter of the full width
+  const candidates = [0.5,1,2,5,10,20,50,100,200];
+  let scaleKm = candidates.find(c => c >= fullWidthKm/4) || candidates[candidates.length-1];
+  const scalePx = scaleKm * pxPerKm;
+
+  const sbX = pad, sbY = pad + plotH + 26;
+  if (scalePx > 0 && isFinite(scalePx)) {
+    ctx.strokeStyle = '#546391'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(sbX, sbY); ctx.lineTo(sbX+scalePx, sbY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sbX, sbY-4); ctx.lineTo(sbX, sbY+4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sbX+scalePx, sbY-4); ctx.lineTo(sbX+scalePx, sbY+4); ctx.stroke();
+    ctx.fillStyle = '#546391'; ctx.font = '11px Arial'; ctx.textAlign = 'left';
+    ctx.fillText(`~${scaleKm} km`, sbX, sbY+16);
+  }
+  ctx.fillStyle = '#94A3B8'; ctx.font = '10px Arial'; ctx.textAlign = 'right';
+  ctx.fillText('Sketsa posisi relatif — bukan peta tercetak skala presisi', pad+plotW, sbY+16);
+
+  return canvas.toDataURL('image/png');
+}
+
+// ═══════════════════════════════════════════════════════════
 // POM BENSIN — Manual gas station map
 // ═══════════════════════════════════════════════════════════
 function GasStations({ stations, setStations, showToast }) {
@@ -1149,6 +1319,9 @@ function GasStations({ stations, setStations, showToast }) {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
+  const [exporting, setExporting] = useState(false);
+
+  const fuelStats = useMemo(() => computeFuelStats(stations), [stations]);
 
   const blankForm = () => ({ name:"", address:"", lat:"", lng:"", fuels: FUEL_TYPES_LIST.map(f=>({type:f,available:true})), notes:"" });
   const [form, setForm] = useState(blankForm);
@@ -1337,22 +1510,33 @@ function GasStations({ stations, setStations, showToast }) {
     let updated;
     if (editing) {
       updated = stations.map(s => s.id===editing.id ? { ...data, id:editing.id, createdAt:s.createdAt } : s);
-      showToast("SPBU diperbarui!");
     } else {
       updated = [...stations, { ...data, id:"GS-"+Date.now(), createdAt:new Date().toISOString() }];
-      showToast("SPBU ditambahkan!");
     }
     setStations(updated);
     setShowForm(false);
-    syncToGAS("saveGasStations", { stations: updated });
+    if (GAS_URL) {
+      const ok = await syncToGASChecked("saveGasStations", { stations: updated });
+      if (ok) {
+        showToast(editing ? "SPBU diperbarui!" : "SPBU ditambahkan!");
+      } else {
+        showToast("Tersimpan di tampilan, TAPI gagal disimpan ke Google Sheet. Pastikan sheet \"GasStations\" sudah dibuat — lihat console (F12) untuk detail.", "error");
+      }
+    } else {
+      showToast(editing ? "SPBU diperbarui!" : "SPBU ditambahkan!");
+    }
   };
 
   const del = async (s) => {
     const updated = stations.filter(x=>x.id!==s.id);
     setStations(updated);
-    showToast("SPBU dihapus","error");
     setConfirmDel(null);
-    syncToGAS("saveGasStations", { stations: updated });
+    if (GAS_URL) {
+      const ok = await syncToGASChecked("saveGasStations", { stations: updated });
+      showToast(ok ? "SPBU dihapus" : "Dihapus dari tampilan, tapi gagal sync ke Google Sheet", "error");
+    } else {
+      showToast("SPBU dihapus","error");
+    }
   };
 
   const flyToStation = (s) => {
@@ -1360,6 +1544,100 @@ function GasStations({ stations, setStations, showToast }) {
     if (mapRef.current) {
       mapRef.current.flyTo([s.lat, s.lng], 16, {duration:0.7});
       setTimeout(() => { const m = markersRef.current[String(s.id)]; if (m) m.openPopup(); }, 700);
+    }
+  };
+
+  // ── Export comprehensive PDF report ──────────────────────────────────
+  const exportPDF = () => {
+    if (exporting || stations.length === 0) {
+      if (stations.length === 0) showToast("Belum ada SPBU untuk dilaporkan", "error");
+      return;
+    }
+    setExporting(true);
+    try {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("id-ID",{day:"2-digit",month:"2-digit",year:"numeric"});
+      const timeStr = now.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}).replace(":",".");
+      const pdf = makeFleetPDF({
+        title: "POM BENSIN — FleetOS",
+        subtitle: "Laporan Komprehensif Lokasi & Ketersediaan BBM",
+        metaRight1: `${fuelStats.total} SPBU tercatat`,
+        metaRight2: "Dibuat " + dateStr + ", " + timeStr,
+        footerLeft: "FleetOS  ·  Gas Station Report  ·  Confidential",
+      });
+      if (!pdf) { showToast("Library PDF gagal dimuat","error"); setExporting(false); return; }
+      const { doc, C, ML, MR, CW, drawPageHeader, drawPageFooter, needY, secLbl, drawStatCards, periodBar } = pdf;
+
+      drawPageHeader();
+      periodBar(`${fuelStats.total} SPBU · ${fuelStats.uniqueFuelTypesAvailable}/${FUEL_TYPES_LIST.length} jenis BBM terpantau`, `Update terakhir tercatat di sistem`);
+
+      secLbl("Ringkasan");
+      drawStatCards(
+        [ {lbl:"Total SPBU", val:String(fuelStats.total), sub:"titik tersimpan"},
+          {lbl:"Rata-rata BBM/SPBU", val:fuelStats.avgFuelsPerStation.toFixed(1), sub:"jenis per titik"},
+          {lbl:"Data Lengkap", val:String(fuelStats.complete), sub:`dari ${fuelStats.total} SPBU`},
+          {lbl:"Belum Ada Data", val:String(fuelStats.noDataCount), sub:"perlu dilengkapi"} ],
+        [C.blue, C.green, C.green, C.orange]
+      );
+
+      needY(20);
+      secLbl("Sebaran Jenis BBM");
+      doc.autoTable({
+        startY: pdf.Y,
+        margin: {left:ML, right:MR},
+        theme: "grid",
+        styles: { fontSize:8.5, cellPadding:3, textColor:C.txt1, lineColor:C.border, lineWidth:0.2 },
+        headStyles: { fillColor:C.navy, textColor:255, fontStyle:"bold", fontSize:8, halign:"left" },
+        alternateRowStyles: { fillColor:[248,249,253] },
+        columnStyles: { 0:{halign:"left",fontStyle:"bold",cellWidth:60}, 1:{halign:"center"}, 2:{halign:"right"}, 3:{halign:"left"} },
+        head: [["Jenis BBM","Jumlah SPBU","% Cakupan","Status"]],
+        body: fuelStats.fuelCounts.map(f => [f.type, String(f.count), f.pct.toFixed(0)+"%", f.count===0 ? "Tidak tersedia" : f.count===fuelStats.total ? "Tersedia di semua SPBU" : "Tersedia sebagian"]),
+        willDrawPage: drawPageFooter,
+      });
+      pdf.Y = doc.lastAutoTable.finalY + 8;
+
+      needY(18);
+      secLbl("Sketsa Lokasi SPBU");
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(C.txt3[0],C.txt3[1],C.txt3[2]);
+      doc.text("Posisi relatif tiap titik berdasarkan koordinat tersimpan. Nomor pada peta sesuai urutan tabel detail di halaman berikutnya.", ML, pdf.Y);
+      pdf.Y += 6;
+      const sketchDataUrl = drawStationSketch(stations, { width:1000, height:560 });
+      const sketchW = CW;
+      const sketchH = sketchW * (560/1000);
+      needY(sketchH + 4);
+      doc.addImage(sketchDataUrl, 'PNG', ML, pdf.Y, sketchW, sketchH);
+      pdf.Y += sketchH + 8;
+
+      doc.addPage(); drawPageHeader();
+      secLbl("Detail SPBU");
+      doc.autoTable({
+        startY: pdf.Y,
+        margin: {left:ML, right:MR},
+        theme: "grid",
+        styles: { fontSize:7.8, cellPadding:2.8, textColor:C.txt1, lineColor:C.border, lineWidth:0.2 },
+        headStyles: { fillColor:C.navy, textColor:255, fontStyle:"bold", fontSize:7.5, halign:"center" },
+        alternateRowStyles: { fillColor:[248,249,253] },
+        columnStyles: { 0:{halign:"center",cellWidth:10}, 1:{halign:"left",cellWidth:42}, 2:{halign:"left",cellWidth:55}, 3:{halign:"left"}, 4:{halign:"left",cellWidth:48} },
+        head: [["No","Nama SPBU","Alamat","Jenis BBM Tersedia","Catatan"]],
+        body: stations.map((s,i) => [
+          String(i+1),
+          s.name||"-",
+          s.address || `${s.lat?.toFixed(5)}, ${s.lng?.toFixed(5)}`,
+          (s.fuels||[]).filter(f=>f.available).map(f=>f.type).join(", ") || "Belum diisi",
+          s.notes || "-",
+        ]),
+        willDrawPage: drawPageFooter,
+      });
+      pdf.Y = doc.lastAutoTable.finalY + 8;
+
+      drawPageFooter();
+      doc.save(`FleetOS_PomBensin_Report_${dateStr.replace(/\//g,"-")}.pdf`);
+      showToast("Report PDF berhasil dibuat!");
+    } catch (err) {
+      console.error("Gas station PDF export error:", err);
+      showToast("Gagal membuat report PDF: " + err.message, "error");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -1407,7 +1685,65 @@ function GasStations({ stations, setStations, showToast }) {
         : React.createElement("button", { className:"btn btn-p", onClick:startPlacing }, React.createElement(Icon,{d:IC.target,size:14,stroke:"var(--accent-on)"}), "Tandai di Peta"),
       React.createElement("button", { className:"btn btn-s", onClick:openManualAdd }, React.createElement(Icon,{d:IC.plus,size:14}), "Input Manual"),
       React.createElement("div", { style:{ flex:1 } }),
+      React.createElement("button", { className:"btn btn-s", onClick:exportPDF, disabled:exporting, style:{ opacity:exporting?0.6:1, color:"var(--accent)", borderColor:"var(--border-strong)" } }, React.createElement(Icon,{d:IC.download,size:14}), exporting ? "Menyiapkan..." : "Report PDF"),
       React.createElement("div", { style:{ fontSize:12, color:"var(--t4)" } }, stations.length, " SPBU tersimpan")
+    ),
+
+    // ── Infografis ringkasan ──────────────────────────────────────────────
+    React.createElement("div", { className:"g4", style:{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:13, marginBottom:16 } },
+      [ {l:"Total SPBU", v:String(fuelStats.total), sub:"titik tersimpan"},
+        {l:"Jenis BBM Terpantau", v:`${fuelStats.uniqueFuelTypesAvailable}/${FUEL_TYPES_LIST.length}`, sub:"jenis tersedia di ≥1 SPBU"},
+        {l:"Rata-rata BBM/SPBU", v:fuelStats.avgFuelsPerStation.toFixed(1), sub:"jenis per titik"},
+        {l:"Belum Ada Data BBM", v:String(fuelStats.noDataCount), sub:"perlu dilengkapi", danger:fuelStats.noDataCount>0},
+      ].map((s,i) => React.createElement("div", { key:i, className:"scard" },
+        React.createElement("div", { className:"num", style:{ fontWeight:700, fontSize:21, color: s.danger ? "var(--warn)" : "var(--t1)", marginBottom:3 } }, s.v),
+        React.createElement("div", { style:{ fontSize:11, color:"var(--t4)" } }, s.l),
+        React.createElement("div", { style:{ fontSize:10, color:"var(--t5)", marginTop:2 } }, s.sub)
+      ))
+    ),
+
+    fuelStats.total > 0 && React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1.4fr 1fr", gap:14, marginBottom:16 } },
+
+      // Sebaran jenis BBM
+      React.createElement("div", { className:"card", style:{ padding:17 } },
+        React.createElement("h3", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, fontSize:13, marginBottom:13 } }, "Sebaran Jenis BBM"),
+        fuelStats.fuelCounts.map((f,i) => React.createElement("div", { key:f.type, style:{ marginBottom: i<fuelStats.fuelCounts.length-1 ? 11 : 0 } },
+          React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", marginBottom:5 } },
+            React.createElement("span", { style:{ fontSize:12, color:"var(--t2)", fontWeight: i===0 ? 600 : 400 } }, f.type, i===0 && f.count>0 ? "  ★" : ""),
+            React.createElement("span", { className:"num", style:{ fontSize:12, fontWeight:700, color: f.count===0 ? "var(--t5)" : "var(--accent)" } }, f.count, " SPBU · ", f.pct.toFixed(0), "%")
+          ),
+          React.createElement("div", { className:"prog" },
+            React.createElement("div", { className:"prog-f", style:{ width:`${f.pct}%`, background: f.count===0 ? "var(--border-12)" : "var(--accent)" } })
+          )
+        ))
+      ),
+
+      // Kelengkapan data + tren
+      React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:14 } },
+        React.createElement("div", { className:"card", style:{ padding:17 } },
+          React.createElement("h3", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, fontSize:13, marginBottom:12 } }, "Kelengkapan Data"),
+          [ {l:"Lengkap", v:fuelStats.complete, col:"var(--ok)"},
+            {l:"Sebagian", v:fuelStats.partial, col:"var(--warn)"},
+            {l:"Belum Diisi", v:fuelStats.empty, col:"var(--danger)"} ].map(c => React.createElement("div", { key:c.l, style:{ display:"flex", alignItems:"center", gap:9, marginBottom:8 } },
+            React.createElement("div", { style:{ width:8, height:8, borderRadius:"50%", background:c.col, flexShrink:0 } }),
+            React.createElement("span", { style:{ fontSize:12, color:"var(--t2)", flex:1 } }, c.l),
+            React.createElement("span", { className:"num", style:{ fontSize:12, fontWeight:700, color:"var(--t1)" } }, c.v)
+          ))
+        ),
+        fuelStats.trend.length > 0 && React.createElement("div", { className:"card", style:{ padding:17, flex:1 } },
+          React.createElement("h3", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, fontSize:13, marginBottom:12 } }, "Tren Penambahan SPBU"),
+          React.createElement("div", { style:{ display:"flex", alignItems:"flex-end", gap:6, height:60 } },
+            fuelStats.trend.map(t => {
+              const maxCount = Math.max(...fuelStats.trend.map(x=>x.count), 1);
+              return React.createElement("div", { key:t.key, style:{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4 } },
+                React.createElement("div", { className:"num", style:{ fontSize:10, fontWeight:700, color:"var(--t2)" } }, t.count),
+                React.createElement("div", { style:{ width:"100%", height: Math.max((t.count/maxCount)*36, 3), background:"var(--accent)", borderRadius:3 } }),
+                React.createElement("div", { style:{ fontSize:9, color:"var(--t5)" } }, t.label)
+              );
+            })
+          )
+        )
+      )
     ),
 
     React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 280px", gap:14 } },
