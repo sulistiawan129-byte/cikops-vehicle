@@ -8,6 +8,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"/>
 <style>
@@ -16,6 +18,19 @@ body{background:#080C16;font-family:'Inter',system-ui,sans-serif;color:#EDF1F7}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:#0E1422}
 ::-webkit-scrollbar-thumb{background:#26304a;border-radius:4px}
+.leaflet-container{background:#0E1422;font-family:'Inter',system-ui,sans-serif}
+.leaflet-popup-content-wrapper{background:#0E1422;color:#EDF1F7;border-radius:10px;border:1px solid rgba(255,255,255,0.1)}
+.leaflet-popup-tip{background:#0E1422}
+.leaflet-popup-content{margin:12px 14px;font-size:12px}
+.leaflet-control-zoom a{background:#0E1422!important;color:#EDF1F7!important;border-color:rgba(255,255,255,0.1)!important}
+.leaflet-control-zoom a:hover{background:#131A2B!important}
+.leaflet-control-attribution{background:rgba(8,12,22,0.8)!important;color:#6B7588!important;font-size:9px!important}
+.leaflet-control-attribution a{color:#8A95A8!important}
+.gas-pin{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50% 50% 50% 0;background:#00B8E0;border:2px solid #06101C;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,0.4)}
+.gas-pin svg{transform:rotate(45deg)}
+.gas-pin.placing{background:#D69A1F;animation:pulse-pin 1s infinite}
+@keyframes pulse-pin{0%,100%{transform:rotate(-45deg) scale(1)}50%{transform:rotate(-45deg) scale(1.15)}}
+.crosshair-cursor{cursor:crosshair!important}
 </style>
 </head>
 <body>
@@ -27,7 +42,7 @@ body{background:#080C16;font-family:'Inter',system-ui,sans-serif;color:#EDF1F7}
 
 <script>
 // ─── POLYFILLS & HELPERS ───────────────────────────────────────────────────
-var _React = React, useState = _React.useState, useEffect = _React.useEffect, useCallback = _React.useCallback, useMemo = _React.useMemo;
+var _React = React, useState = _React.useState, useEffect = _React.useEffect, useCallback = _React.useCallback, useMemo = _React.useMemo, useRef = _React.useRef;
 
 var GAS_URL = (typeof window !== "undefined" && window.__GAS_URL__) ? window.__GAS_URL__ : "";
 
@@ -91,6 +106,11 @@ const IC = {
   arrowUp:   "M12 19V5M5 12l7-7 7 7",
   arrowDown: "M12 5v14M5 12l7 7 7-7",
   minus:     "M5 12h14",
+  pin:       ["M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z","M12 13a3 3 0 100-6 3 3 0 000 6z"],
+  droplet:   "M12 2.69l5.66 5.66a8 8 0 11-11.31 0z",
+  search:    ["M11 19a8 8 0 100-16 8 8 0 000 16z","M21 21l-4.35-4.35"],
+  target:    ["M12 22a10 10 0 100-20 10 10 0 000 20z","M12 16a4 4 0 100-8 4 4 0 000 8z","M12 2v2","M12 20v2","M2 12h2","M20 12h2"],
+  list:      ["M8 6h13","M8 12h13","M8 18h13","M3 6h.01","M3 12h.01","M3 18h.01"],
 };
 
 // ─── STATIC DATA ────────────────────────────────────────────────────────────
@@ -129,6 +149,14 @@ const INIT_KANTONG = {
   period:         "Juni 2025",
   lastReset:      "2025-06-01",
 };
+
+// ── Gas Station (Pom Bensin) ──
+const FUEL_TYPES_LIST = ["Pertalite","Pertamax","Pertamax Turbo","Pertamax Green","Solar","Dexlite"];
+// Starts empty — stations are added manually by the user via map click or form input.
+const INIT_GAS_STATIONS = [];
+// Default map center: Cikarang area (consistent with FFI Cikarang / CIKOPS context)
+const MAP_DEFAULT_CENTER = [-6.2607, 107.1525];
+const MAP_DEFAULT_ZOOM = 13;
 
 // ─── UTILITY FUNCTIONS ──────────────────────────────────────────────────────
 const fmt      = n  => new Intl.NumberFormat("id-ID").format(Math.round(Number(n) || 0));
@@ -450,6 +478,7 @@ function App() {
   const [tiers,     setTiers]     = useState([]);
   const [drivers,   setDrivers]   = useState([]);
   const [kantong,   setKantong]   = useState(INIT_KANTONG);
+  const [gasStations, setGasStations] = useState(INIT_GAS_STATIONS);
   const [toast,     setToast]     = useState(null);
   const [loading,   setLoading]   = useState(false);
   const [gasReady,  setGasReady]  = useState(false);
@@ -458,7 +487,7 @@ function App() {
   useEffect(() => {
     if (!GAS_URL) {
       setVehicles(INIT_VEHICLES); setClaims(INIT_CLAIMS); setDrivers(INIT_DRIVERS);
-      setTiers(INIT_TIERS); setKantong(INIT_KANTONG);
+      setTiers(INIT_TIERS); setKantong(INIT_KANTONG); setGasStations(INIT_GAS_STATIONS);
       setNotifs(buildNotifs(INIT_VEHICLES, INIT_KANTONG));
       return;
     }
@@ -482,6 +511,11 @@ function App() {
       setTiers((data.tiers||[]).length>0 ? data.tiers.map(t=>({...t,amount:Number(t.amount)||0,count:Number(t.count)||0})) : INIT_TIERS);
       const resolvedKantong = data.kantong || INIT_KANTONG;
       setKantong(resolvedKantong);
+      setGasStations((data.gasStations||[]).map(s => ({
+        ...s,
+        lat: Number(s.lat), lng: Number(s.lng),
+        fuels: Array.isArray(s.fuels) ? s.fuels : (typeof s.fuels === "string" ? (()=>{ try { return JSON.parse(s.fuels); } catch(e){ return []; } })() : []),
+      })));
       setNotifs(buildNotifs(resolvedVehicles, resolvedKantong));
       setGasReady(true);
     }).catch(()=>setGasError(true)).finally(()=>setLoading(false));
@@ -495,6 +529,7 @@ function App() {
     {id:"dashboard",label:"Dashboard",icon:"dashboard"},
     {id:"vehicles", label:"Kendaraan",icon:"car"},
     {id:"claims",   label:"Claim",    icon:"claim"},
+    {id:"pombensin",label:"Pom Bensin",icon:"pin"},
     {id:"reports",  label:"Report",   icon:"report"},
     {id:"documents",label:"Dokumen",  icon:"doc"},
     {id:"driver",   label:"Driver Budget",icon:"budget"},
@@ -567,6 +602,7 @@ function App() {
         page==="dashboard"  && React.createElement(Dashboard,{vehicles,claims,notifs,setPage}),
         page==="vehicles"   && React.createElement(Vehicles,{vehicles,setVehicles,showToast}),
         page==="claims"     && React.createElement(Claims,{claims,setClaims,drivers,showToast,gasReady}),
+        page==="pombensin"  && React.createElement(GasStations,{stations:gasStations,setStations:setGasStations,showToast}),
         page==="reports"    && React.createElement(Reports,{claims,kantong,showToast}),
         page==="documents"  && React.createElement(Documents,{vehicles,setVehicles,showToast}),
         page==="driver"     && React.createElement(DriverBudget,{tiers,setTiers,showToast}),
@@ -1011,6 +1047,366 @@ function Claims({claims,setClaims,drivers,showToast,gasReady}) {
         React.createElement("div",{style:{display:"flex",gap:9}},
           React.createElement("button",{className:"btn btn-s",style:{flex:1},onClick:()=>setConfirmDel(null)},"Batal"),
           React.createElement("button",{className:"btn btn-d",style:{flex:1,justifyContent:"center",padding:"10px"},onClick:()=>del(confirmDel.id)},React.createElement(Icon,{d:IC.trash,size:13}),"Ya, Hapus")
+        )
+      )
+    )
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// POM BENSIN — Manual gas station map
+// ═══════════════════════════════════════════════════════════
+function GasStations({ stations, setStations, showToast }) {
+  const mapElRef   = useRef(null);
+  const mapRef     = useRef(null);
+  const markersRef = useRef({});
+  const placingRef = useRef(false);
+
+  const [mapReady, setMapReady]   = useState(false);
+  const [placing, setPlacing]     = useState(false);
+  const [showForm, setShowForm]   = useState(false);
+  const [editing, setEditing]     = useState(null); // station being edited, or null = new
+  const [pendingLatLng, setPendingLatLng] = useState(null);
+  const [confirmDel, setConfirmDel] = useState(null);
+  const [search, setSearch]       = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+
+  const blankForm = () => ({ name:"", address:"", lat:"", lng:"", fuels: FUEL_TYPES_LIST.map(f=>({type:f,available:true})), notes:"" });
+  const [form, setForm] = useState(blankForm);
+
+  // ── Init Leaflet map once ──
+  useEffect(() => {
+    if (!window.L || mapRef.current) return;
+    const map = window.L.map(mapElRef.current, {
+      center: MAP_DEFAULT_CENTER,
+      zoom: MAP_DEFAULT_ZOOM,
+      zoomControl: true,
+    });
+    window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19,
+    }).addTo(map);
+
+    map.on('click', (e) => {
+      if (!placingRef.current) return;
+      setPendingLatLng({ lat: e.latlng.lat, lng: e.latlng.lng });
+      setEditing(null);
+      setForm({ ...blankForm(), lat: e.latlng.lat.toFixed(6), lng: e.latlng.lng.toFixed(6) });
+      setShowForm(true);
+      setPlacing(false);
+      placingRef.current = false;
+      map.getContainer().classList.remove('crosshair-cursor');
+    });
+
+    mapRef.current = map;
+    setMapReady(true);
+
+    return () => { /* keep map alive across re-renders within this page session */ };
+  }, []);
+
+  // ── Sync placing mode flag into ref (so the click handler closure sees latest value) ──
+  useEffect(() => { placingRef.current = placing; }, [placing]);
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const el = mapRef.current.getContainer();
+    if (placing) el.classList.add('crosshair-cursor'); else el.classList.remove('crosshair-cursor');
+  }, [placing]);
+
+  // ── Custom pin icon factory ──
+  const pinIcon = (active) => window.L.divIcon({
+    className: '',
+    html: `<div class="gas-pin${active ? ' placing' : ''}"><svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white"><circle cx="12" cy="12" r="5"/></svg></div>`,
+    iconSize: [30,30],
+    iconAnchor: [15,30],
+    popupAnchor: [0,-28],
+  });
+
+  // ── Sync markers whenever stations list changes ──
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const currentIds = new Set(stations.map(s=>String(s.id)));
+
+    // Remove markers for deleted stations
+    Object.keys(markersRef.current).forEach(id => {
+      if (!currentIds.has(id)) { map.removeLayer(markersRef.current[id]); delete markersRef.current[id]; }
+    });
+
+    // Add/update markers
+    stations.forEach(s => {
+      const id = String(s.id);
+      const availableFuels = (s.fuels||[]).filter(f=>f.available).map(f=>f.type);
+      const popupHtml = `
+        <div style="min-width:180px">
+          <div style="font-weight:700;font-size:13px;color:#EDF1F7;margin-bottom:3px">${escapeHtml(s.name)}</div>
+          ${s.address ? `<div style="font-size:11px;color:#8A95A8;margin-bottom:6px">${escapeHtml(s.address)}</div>` : ''}
+          <div style="font-size:10px;color:#6B7588;margin-bottom:3px">BBM TERSEDIA</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
+            ${availableFuels.length ? availableFuels.map(f=>`<span style="font-size:10px;padding:2px 7px;border-radius:5px;background:rgba(0,184,224,0.14);color:#00B8E0;font-weight:600">${escapeHtml(f)}</span>`).join('') : '<span style="font-size:11px;color:#4D5666">Belum diisi</span>'}
+          </div>
+          <div style="display:flex;gap:6px">
+            <button data-action="edit" data-id="${id}" style="flex:1;font-size:11px;font-weight:600;padding:5px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.12);background:#131A2B;color:#AEB8C9;cursor:pointer">Edit</button>
+            <button data-action="del" data-id="${id}" style="font-size:11px;font-weight:600;padding:5px 8px;border-radius:6px;border:1px solid rgba(224,82,74,0.3);background:rgba(224,82,74,0.1);color:#E0524A;cursor:pointer">Hapus</button>
+          </div>
+        </div>`;
+
+      if (markersRef.current[id]) {
+        markersRef.current[id].setLatLng([s.lat, s.lng]);
+        markersRef.current[id].setPopupContent(popupHtml);
+      } else {
+        const marker = window.L.marker([s.lat, s.lng], { icon: pinIcon(false) }).addTo(map);
+        marker.bindPopup(popupHtml);
+        marker.on('popupopen', () => {
+          const el = marker.getPopup().getElement();
+          if (!el) return;
+          const editBtn = el.querySelector('[data-action="edit"]');
+          const delBtn  = el.querySelector('[data-action="del"]');
+          if (editBtn) editBtn.onclick = () => openEdit(s);
+          if (delBtn)  delBtn.onclick  = () => setConfirmDel(s);
+        });
+        markersRef.current[id] = marker;
+      }
+    });
+  }, [stations, mapReady]);
+
+  function escapeHtml(str) {
+    return String(str||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  const startPlacing = () => {
+    setPlacing(true);
+    showToast("Klik di peta untuk menandai lokasi SPBU");
+  };
+  const cancelPlacing = () => { setPlacing(false); };
+
+  const openManualAdd = () => {
+    setEditing(null);
+    setPendingLatLng(null);
+    setForm(blankForm());
+    setShowForm(true);
+  };
+
+  const openEdit = (s) => {
+    setEditing(s);
+    setForm({
+      name: s.name, address: s.address||"",
+      lat: String(s.lat), lng: String(s.lng),
+      fuels: FUEL_TYPES_LIST.map(f => {
+        const existing = (s.fuels||[]).find(x=>x.type===f);
+        return { type:f, available: existing ? !!existing.available : false };
+      }),
+      notes: s.notes||"",
+    });
+    setShowForm(true);
+    if (mapRef.current) mapRef.current.flyTo([s.lat, s.lng], Math.max(mapRef.current.getZoom(), 15), {duration:0.6});
+  };
+
+  const toggleFuel = (type) => setForm(p => ({ ...p, fuels: p.fuels.map(f => f.type===type ? {...f, available:!f.available} : f) }));
+
+  const canSave = form.name.trim() && form.lat !== "" && form.lng !== "" && !isNaN(Number(form.lat)) && !isNaN(Number(form.lng));
+
+  const save = async () => {
+    if (!canSave) return;
+    const data = {
+      name: form.name.trim(),
+      address: form.address.trim(),
+      lat: Number(form.lat),
+      lng: Number(form.lng),
+      fuels: form.fuels,
+      notes: form.notes.trim(),
+      updatedAt: new Date().toISOString(),
+    };
+    let updated;
+    if (editing) {
+      updated = stations.map(s => s.id===editing.id ? { ...data, id:editing.id, createdAt:s.createdAt } : s);
+      showToast("SPBU diperbarui!");
+    } else {
+      updated = [...stations, { ...data, id:"GS-"+Date.now(), createdAt:new Date().toISOString() }];
+      showToast("SPBU ditambahkan!");
+    }
+    setStations(updated);
+    setShowForm(false);
+    syncToGAS("saveGasStations", { stations: updated });
+  };
+
+  const del = async (s) => {
+    const updated = stations.filter(x=>x.id!==s.id);
+    setStations(updated);
+    showToast("SPBU dihapus","error");
+    setConfirmDel(null);
+    syncToGAS("saveGasStations", { stations: updated });
+  };
+
+  const flyToStation = (s) => {
+    setSelectedId(s.id);
+    if (mapRef.current) {
+      mapRef.current.flyTo([s.lat, s.lng], 16, {duration:0.7});
+      setTimeout(() => { const m = markersRef.current[String(s.id)]; if (m) m.openPopup(); }, 700);
+    }
+  };
+
+  // ── Address search via Nominatim (OpenStreetMap), debounced ──
+  useEffect(() => {
+    if (!search.trim() || search.trim().length < 3) { setSearchResults([]); return; }
+    const handle = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(search)}`);
+        const json = await res.json();
+        setSearchResults(Array.isArray(json) ? json : []);
+      } catch (e) {
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 600);
+    return () => clearTimeout(handle);
+  }, [search]);
+
+  const pickSearchResult = (r) => {
+    setForm(p => ({ ...p, lat: Number(r.lat).toFixed(6), lng: Number(r.lon).toFixed(6), address: p.address || r.display_name }));
+    setSearch(""); setSearchResults([]);
+    if (mapRef.current) mapRef.current.flyTo([Number(r.lat), Number(r.lon)], 16, {duration:0.6});
+  };
+
+  return React.createElement("div", null,
+
+    React.createElement("div", { style:{ display:"flex", gap:9, marginBottom:14, flexWrap:"wrap", alignItems:"center" } },
+      placing
+        ? React.createElement(React.Fragment, null,
+            React.createElement("div", { style:{ display:"flex", alignItems:"center", gap:8, padding:"8px 14px", background:"rgba(214,154,31,0.1)", border:"1px solid rgba(214,154,31,0.3)", borderRadius:9, fontSize:12, color:"#D69A1F", fontWeight:600 } },
+              React.createElement(Icon, { d:IC.pin, size:14 }), "Klik di peta untuk menandai lokasi..."
+            ),
+            React.createElement("button", { className:"btn btn-s btn-sm", onClick:cancelPlacing }, "Batal")
+          )
+        : React.createElement("button", { className:"btn btn-p", onClick:startPlacing }, React.createElement(Icon,{d:IC.target,size:14,stroke:"#06101C"}), "Tandai di Peta"),
+      React.createElement("button", { className:"btn btn-s", onClick:openManualAdd }, React.createElement(Icon,{d:IC.plus,size:14}), "Input Manual"),
+      React.createElement("div", { style:{ flex:1 } }),
+      React.createElement("div", { style:{ fontSize:12, color:"#6B7588" } }, stations.length, " SPBU tersimpan")
+    ),
+
+    React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 280px", gap:14 } },
+
+      // Map panel
+      React.createElement("div", { className:"card", style:{ overflow:"hidden", height:560, position:"relative" } },
+        React.createElement("div", { ref: el => { mapElRef.current = el; }, style:{ width:"100%", height:"100%" } })
+      ),
+
+      // Sidebar list
+      React.createElement("div", { className:"card", style:{ display:"flex", flexDirection:"column", height:560, overflow:"hidden" } },
+        React.createElement("div", { style:{ padding:"13px 15px", borderBottom:"1px solid rgba(255,255,255,0.06)", display:"flex", alignItems:"center", gap:8 } },
+          React.createElement(Icon, { d:IC.list, size:14, stroke:"#6B7588" }),
+          React.createElement("h3", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, fontSize:13 } }, "Daftar SPBU")
+        ),
+        React.createElement("div", { style:{ flex:1, overflowY:"auto", padding:8 } },
+          stations.length===0
+            ? React.createElement("div", { style:{ textAlign:"center", padding:"40px 14px", color:"#4D5666" } },
+                React.createElement(Icon, { d:IC.pin, size:26, stroke:"#374151" }),
+                React.createElement("div", { style:{ marginTop:10, fontSize:12, lineHeight:1.6 } }, "Belum ada SPBU. Klik \"Tandai di Peta\" atau \"Input Manual\" untuk menambahkan.")
+              )
+            : stations.map(s => {
+                const availCount = (s.fuels||[]).filter(f=>f.available).length;
+                return React.createElement("div", { key:s.id, onClick:()=>flyToStation(s),
+                  style:{ padding:"10px 11px", borderRadius:9, cursor:"pointer", marginBottom:5,
+                    background: selectedId===s.id ? "rgba(0,184,224,0.08)" : "transparent",
+                    border: selectedId===s.id ? "1px solid rgba(0,184,224,0.25)" : "1px solid transparent" } },
+                  React.createElement("div", { style:{ fontSize:12.5, fontWeight:600, color:"#EDF1F7", marginBottom:2 } }, s.name),
+                  s.address && React.createElement("div", { style:{ fontSize:10.5, color:"#6B7588", marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" } }, s.address),
+                  React.createElement("div", { style:{ fontSize:10, color: availCount>0 ? "#1FAE6E" : "#4D5666" } }, availCount>0 ? `${availCount} jenis BBM tersedia` : "Jenis BBM belum diisi")
+                );
+              })
+        )
+      )
+    ),
+
+    // Add/Edit form modal
+    showForm && React.createElement("div", { className:"overlay", onClick:e=>e.target===e.currentTarget&&setShowForm(false) },
+      React.createElement("div", { className:"modal", style:{ maxWidth:480 } },
+        React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 } },
+          React.createElement("h2", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:16 } }, editing ? "Edit SPBU" : "Tambah SPBU"),
+          React.createElement("button", { className:"btn btn-s btn-sm", style:{ padding:"6px 9px" }, onClick:()=>setShowForm(false) }, React.createElement(Icon,{d:IC.x,size:13}))
+        ),
+
+        React.createElement("div", { style:{ marginBottom:12 } },
+          React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:5 } }, "NAMA SPBU"),
+          React.createElement("input", { className:"inp", placeholder:"mis: Pertamina 34.175.01", value:form.name, onChange:e=>setForm(p=>({...p,name:e.target.value})) })
+        ),
+
+        // Address search (Nominatim) — only useful for manual-add path
+        React.createElement("div", { style:{ marginBottom:12, position:"relative" } },
+          React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:5 } }, "CARI ALAMAT (opsional, untuk isi koordinat otomatis)"),
+          React.createElement("div", { style:{ position:"relative" } },
+            React.createElement(Icon, { d:IC.search, size:13, stroke:"#4D5666", style:{position:"absolute",left:12,top:11} }),
+            React.createElement("input", { className:"inp", style:{paddingLeft:32}, placeholder:"Ketik nama jalan / area...", value:search, onChange:e=>setSearch(e.target.value) })
+          ),
+          searching && React.createElement("div", { style:{ fontSize:11, color:"#4D5666", marginTop:5 } }, "Mencari..."),
+          searchResults.length>0 && React.createElement("div", { className:"card-flat", style:{ position:"absolute", zIndex:10, left:0, right:0, marginTop:4, maxHeight:160, overflowY:"auto" } },
+            searchResults.map((r,i) => React.createElement("div", { key:i, onClick:()=>pickSearchResult(r),
+              style:{ padding:"8px 11px", fontSize:11.5, color:"#AEB8C9", cursor:"pointer", borderBottom: i<searchResults.length-1 ? "1px solid rgba(255,255,255,0.05)" : "none" } },
+              r.display_name
+            ))
+          )
+        ),
+
+        React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 } },
+          React.createElement("div", null,
+            React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:5 } }, "LATITUDE"),
+            React.createElement("input", { className:"inp", style:{fontFamily:"'Space Grotesk',monospace",fontSize:12}, placeholder:"-6.260700", value:form.lat, onChange:e=>setForm(p=>({...p,lat:e.target.value})) })
+          ),
+          React.createElement("div", null,
+            React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:5 } }, "LONGITUDE"),
+            React.createElement("input", { className:"inp", style:{fontFamily:"'Space Grotesk',monospace",fontSize:12}, placeholder:"107.152500", value:form.lng, onChange:e=>setForm(p=>({...p,lng:e.target.value})) })
+          )
+        ),
+
+        React.createElement("div", { style:{ marginBottom:14 } },
+          React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:5 } }, "ALAMAT (opsional)"),
+          React.createElement("input", { className:"inp", placeholder:"Jl. Sheikh Mohamed Bin Zayed...", value:form.address, onChange:e=>setForm(p=>({...p,address:e.target.value})) })
+        ),
+
+        React.createElement("div", { style:{ marginBottom:14 } },
+          React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:8 } }, "JENIS BBM TERSEDIA"),
+          React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:7 } },
+            form.fuels.map(f => React.createElement("button", { key:f.type, type:"button", onClick:()=>toggleFuel(f.type),
+              style:{ display:"flex", alignItems:"center", gap:8, padding:"8px 11px", borderRadius:8, cursor:"pointer", textAlign:"left",
+                background: f.available ? "rgba(31,174,110,0.08)" : "rgba(255,255,255,0.02)",
+                border: f.available ? "1px solid rgba(31,174,110,0.3)" : "1px solid rgba(255,255,255,0.07)" } },
+              React.createElement("div", { style:{ width:15, height:15, borderRadius:4, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center",
+                background: f.available ? "#1FAE6E" : "transparent", border: f.available ? "none" : "1px solid rgba(255,255,255,0.2)" } },
+                f.available && React.createElement(Icon, { d:IC.check, size:10, stroke:"#06101C", sw:3 })
+              ),
+              React.createElement("span", { style:{ fontSize:12, color: f.available ? "#EDF1F7" : "#6B7588", fontWeight: f.available ? 600 : 400 } }, f.type)
+            ))
+          )
+        ),
+
+        React.createElement("div", { style:{ marginBottom:16 } },
+          React.createElement("label", { style:{ fontSize:11, color:"#6B7588", fontWeight:600, display:"block", marginBottom:5 } }, "CATATAN (opsional)"),
+          React.createElement("input", { className:"inp", placeholder:"mis: dekat pintu tol, buka 24 jam...", value:form.notes, onChange:e=>setForm(p=>({...p,notes:e.target.value})) })
+        ),
+
+        React.createElement("div", { style:{ display:"flex", gap:9 } },
+          React.createElement("button", { className:"btn btn-s", style:{flex:1}, onClick:()=>setShowForm(false) }, "Batal"),
+          React.createElement("button", { className:"btn btn-p", style:{flex:1, opacity:canSave?1:0.4, cursor:canSave?"pointer":"not-allowed"}, onClick:save },
+            React.createElement(Icon,{d:IC.check,size:14,stroke:"#06101C"}), editing ? "Simpan Perubahan" : "Tambah SPBU"
+          )
+        )
+      )
+    ),
+
+    confirmDel && React.createElement("div", { className:"overlay", onClick:e=>e.target===e.currentTarget&&setConfirmDel(null) },
+      React.createElement("div", { className:"modal", style:{ maxWidth:360, textAlign:"center" } },
+        React.createElement("div", { style:{ width:48, height:48, borderRadius:"50%", background:"rgba(224,82,74,0.1)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px" } },
+          React.createElement(Icon, { d:IC.trash, size:22, stroke:"#E0524A" })
+        ),
+        React.createElement("h2", { style:{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:16, marginBottom:7 } }, "Hapus SPBU?"),
+        React.createElement("p", { style:{ fontSize:12, color:"#6B7588", marginBottom:18, lineHeight:1.6 } }, "Titik ", React.createElement("b",{style:{color:"#EDF1F7"}}, confirmDel.name), " akan dihapus permanen dari peta."),
+        React.createElement("div", { style:{ display:"flex", gap:9 } },
+          React.createElement("button", { className:"btn btn-s", style:{flex:1}, onClick:()=>setConfirmDel(null) }, "Batal"),
+          React.createElement("button", { className:"btn btn-d", style:{flex:1,justifyContent:"center",padding:"10px"}, onClick:()=>del(confirmDel) }, React.createElement(Icon,{d:IC.trash,size:13}), "Ya, Hapus")
         )
       )
     )
