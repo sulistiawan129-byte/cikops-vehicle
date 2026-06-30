@@ -330,23 +330,27 @@ function makeFleetPDF(opts) {
   const doc = new JsPDF({ orientation:"landscape", unit:"mm", format:"a4" });
   const PW = doc.internal.pageSize.getWidth();
   const PH = doc.internal.pageSize.getHeight();
-  const ML = 12, MR = 12;
+  const ML = 14, MR = 14;
   const CW = PW - ML - MR;
   let Y = 0;
 
+  // Color tokens sampled directly from the reference Canteen Operations PDF —
+  // kept identical here so every report in the suite shares one visual system.
   const C = {
-    navy:   [8,12,22],
-    accent: [0,184,224],
-    accentLt:[224,247,252],
-    green:  [31,174,110],
-    amber:  [214,154,31],
-    red:    [224,82,74],
-    white:  [255,255,255],
-    txt1:   [13,19,40],
-    txt2:   [74,84,102],
-    txt3:   [140,150,168],
-    bg:     [247,249,252],
-    border: [224,228,236],
+    navy:    [10,20,51],     // header/footer band
+    blue:    [58,91,219],    // primary accent: period bar, section label, default stat bar
+    green:   [22,163,73],
+    orange:  [234,89,12],
+    purple:  [109,40,216],
+    red:     [214,52,52],
+    white:   [255,255,255],
+    txt1:    [13,19,40],     // value numbers, section label text — near-black
+    label:   [84,99,145],    // stat card small labels (ORDERED/CONSUMED/...) — same on every card regardless of accent color
+    txt3:    [110,120,150],  // muted meta text (subtitles, sub-labels, footer)
+    headerSub:[150,165,200], // header subtitle / meta lines on navy bg
+    periodBg:[234,239,255],  // period bar background tint
+    border:  [206,211,227],
+    bg:      [255,255,255],  // page background is plain white, not off-white
   };
 
   function sf(rgb){ doc.setFillColor(rgb[0],rgb[1],rgb[2]); }
@@ -354,72 +358,82 @@ function makeFleetPDF(opts) {
   function st(rgb){ doc.setTextColor(rgb[0],rgb[1],rgb[2]); }
 
   function drawPageHeader() {
-    sf(C.navy); doc.rect(0,0,PW,20,'F');
-    sf(C.white); doc.roundedRect(ML, 5, 10, 10, 2, 2, 'F');
-    doc.setFont('helvetica','bold'); doc.setFontSize(11); st(C.navy);
-    doc.text('F', ML+5, 11.5, {align:'center'});
-    doc.setFont('helvetica','bold'); doc.setFontSize(13); st(C.white);
-    doc.text('FleetOS', ML+15, 9);
-    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); st([150,165,200]);
-    doc.text('Vehicle Management System', ML+15, 14.5);
-    doc.setFont('helvetica','bold'); doc.setFontSize(11); st(C.white);
-    doc.text(opts.title || 'Laporan', PW-MR, 9, {align:'right'});
-    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); st([150,165,200]);
-    doc.text(opts.subtitle || '', PW-MR, 14.5, {align:'right'});
-    sf(C.accent); doc.rect(0,20,PW,1,'F');
-    Y = 27;
+    // Single full-bleed navy band — no separate logo box, no accent stripe
+    // beneath it. The body content starts directly below in white.
+    sf(C.navy); doc.rect(0,0,PW,24,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(15); st(C.white);
+    doc.text(opts.title || 'LAPORAN', ML, 11);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); st(C.headerSub);
+    doc.text(opts.subtitle || '', ML, 17.5);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); st(C.white);
+    doc.text(opts.metaRight1 || '', PW-MR, 10, {align:'right'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); st(C.headerSub);
+    doc.text(opts.metaRight2 || '', PW-MR, 16, {align:'right'});
+    Y = 32;
   }
 
   function drawPageFooter() {
     const fy = PH - 9;
     sf(C.navy); doc.rect(0,fy-2,PW,11,'F');
-    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); st([130,145,180]);
-    doc.text('FleetOS · Vehicle Management · Confidential', ML, fy+3.5);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); st(C.headerSub);
+    doc.text(opts.footerLeft || '', ML, fy+3.5);
     doc.text('Halaman '+doc.internal.getNumberOfPages(), PW-MR, fy+3.5, {align:'right'});
   }
 
   function needY(h) { if (Y + h > PH - 14) { doc.addPage(); drawPageHeader(); } }
 
+  // Section label: bold near-black text in sentence case (NOT uppercase),
+  // thick short vertical accent bar to its left, thin rule continuing to
+  // the right edge of the content area.
   function secLbl(label) {
-    needY(12);
-    sf(C.accent); doc.rect(ML, Y, 2.2, 5.5, 'F');
-    doc.setFont('helvetica','bold'); doc.setFontSize(9.5); st(C.txt1);
-    doc.text(label, ML+5, Y+4.5);
+    needY(13);
+    sf(C.blue); doc.rect(ML, Y, 1.4, 5, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(10.5); st(C.txt1);
+    doc.text(label, ML+4.5, Y+4.2);
     sd(C.border); doc.setLineWidth(0.3);
-    doc.line(ML+5+doc.getTextWidth(label)+4, Y+2.8, PW-MR, Y+2.8);
-    Y += 10;
+    doc.line(ML+4.5+doc.getTextWidth(label)+4, Y+2.2, PW-MR, Y+2.2);
+    Y += 11;
   }
 
+  // Stat cards: white bg, thick solid accent bar on top (color varies per
+  // card), label text always the same neutral blue-grey regardless of the
+  // accent color, value always near-black bold — never colored.
   function drawStatCards(cards, colors) {
-    needY(24);
-    const gap = 4;
+    needY(26);
+    const gap = 4.5;
     const w = (CW - gap*(cards.length-1)) / cards.length;
+    const h = 22;
     cards.forEach((c,i) => {
       const x = ML + i*(w+gap);
-      sf(C.white); sd(C.border); doc.setLineWidth(0.3);
-      doc.roundedRect(x, Y, w, 20, 1.5, 1.5, 'FD');
-      const col = colors[i] || C.accent;
-      sf(col); doc.rect(x, Y, w, 1.3, 'F');
-      doc.setFont('helvetica','bold'); doc.setFontSize(6.5); st(C.txt3);
-      doc.text(String(c.lbl).toUpperCase(), x+4, Y+6.5);
-      doc.setFont('helvetica','bold'); doc.setFontSize(13); st(C.txt1);
-      doc.text(String(c.val), x+4, Y+14);
-      if (c.sub) { doc.setFont('helvetica','normal'); doc.setFontSize(6.5); st(C.txt3); doc.text(String(c.sub), x+4, Y+18); }
+      sf(C.white); sd(C.border); doc.setLineWidth(0.25);
+      doc.roundedRect(x, Y, w, h, 1.6, 1.6, 'FD');
+      const col = colors[i] || C.blue;
+      sf(col); doc.roundedRect(x, Y, w, 3.2, 1.6, 1.6, 'F');
+      doc.rect(x, Y+1.6, w, 1.6, 'F'); // square off the bottom of the accent bar so it doesn't bleed rounded corners into the card body
+      doc.setFont('helvetica','bold'); doc.setFontSize(6.8); st(C.label);
+      doc.text(String(c.lbl).toUpperCase(), x+4.5, Y+9.5);
+      doc.setFont('helvetica','bold'); doc.setFontSize(15); st(C.txt1);
+      doc.text(String(c.val), x+4.5, Y+16.5);
+      if (c.sub) { doc.setFont('helvetica','normal'); doc.setFontSize(6.8); st(C.txt3); doc.text(String(c.sub), x+4.5, Y+20); }
     });
-    Y += 25;
+    Y += h + 6;
   }
 
+  // Period bar: light blue tint background, solid blue block on the left
+  // edge, "PERIOD" label in blue, value in dark text, optional right-aligned
+  // meta note in muted grey.
   function periodBar(label, sub) {
-    needY(13);
-    sf(C.accentLt); sd(C.accent); doc.setLineWidth(0.4);
-    doc.roundedRect(ML, Y, CW, 10, 1.8, 1.8, 'FD');
-    sf(C.accent); doc.rect(ML, Y, 3, 10, 'F');
-    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); st(C.accent);
-    doc.text('PERIODE', ML+7, Y+6.5);
+    needY(14);
+    const h = 11;
+    sf(C.periodBg); sd([191,205,247]); doc.setLineWidth(0.25);
+    doc.roundedRect(ML, Y, CW, h, 1.6, 1.6, 'FD');
+    sf(C.blue); doc.rect(ML, Y, 4, h, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); st(C.blue);
+    doc.text('PERIOD', ML+8, Y+h/2+1);
     doc.setFont('helvetica','normal'); doc.setFontSize(8.5); st(C.txt1);
-    doc.text(String(label), ML+30, Y+6.5);
-    if (sub) { doc.setFont('helvetica','normal'); doc.setFontSize(7.5); st(C.txt3); doc.text(String(sub), PW-MR, Y+6.5, {align:'right'}); }
-    Y += 15;
+    doc.text(String(label), ML+32, Y+h/2+1);
+    if (sub) { doc.setFont('helvetica','normal'); doc.setFontSize(7.5); st(C.txt3); doc.text(String(sub), PW-MR-3, Y+h/2+1, {align:'right'}); }
+    Y += h + 5;
   }
 
   return { doc, C, PW, PH, ML, MR, CW, get Y(){return Y;}, set Y(v){Y=v;},
@@ -1154,29 +1168,38 @@ function Reports({ claims, kantong, showToast }) {
     if (!report || report.empty || downloading) return;
     setDownloading(true);
     try {
-      const pdf = makeFleetPDF({ title:"Laporan Claim", subtitle: periodLabel + " · Dibuat " + new Date().toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}) });
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("id-ID",{day:"2-digit",month:"2-digit",year:"numeric"});
+      const timeStr = now.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}).replace(":",".");
+      const pdf = makeFleetPDF({
+        title: "FLEET OPERATIONS — FleetOS",
+        subtitle: "Laporan Komprehensif Claim Kendaraan",
+        metaRight1: "Periode " + periodLabel,
+        metaRight2: "Dibuat " + dateStr + ", " + timeStr,
+        footerLeft: "FleetOS  ·  Vehicle Claim Report  ·  Confidential",
+      });
       if (!pdf) { showToast("Library PDF gagal dimuat","error"); setDownloading(false); return; }
       const { doc, C, ML, MR, CW, drawPageHeader, drawPageFooter, needY, secLbl, drawStatCards, periodBar } = pdf;
       const r = report;
 
       drawPageHeader();
-      periodBar(periodLabel, `${r.monthClaims.length} transaksi · ${r.weeks.length} minggu`);
+      periodBar(periodLabel, `${r.weeks.length} minggu kerja`);
 
-      secLbl("Ringkasan");
+      secLbl("Claim Overview");
       drawStatCards(
-        [ {lbl:"Total Pengeluaran", val:"Rp "+fmt(r.grand)},
-          {lbl:"Total Transaksi", val:String(r.monthClaims.length)},
-          {lbl:"Rata-rata/Minggu", val:"Rp "+fmt(r.avgPerWeek)},
-          {lbl:"Jenis Terbesar", val:r.topType?.type||"—"} ],
-        [C.accent, [74,84,102], C.green, C.amber]
+        [ {lbl:"Total Pengeluaran", val:"Rp "+fmt(r.grand), sub:"Periode ini"},
+          {lbl:"Total Transaksi", val:String(r.monthClaims.length), sub:"Jumlah claim"},
+          {lbl:"Rata-rata/Minggu", val:"Rp "+fmt(r.avgPerWeek), sub:"Per minggu"},
+          {lbl:"Jenis Terbesar", val:r.topType?.type||"—", sub:"Kategori claim"} ],
+        [C.blue, C.green, C.orange, C.purple]
       );
 
       needY(20);
       secLbl("Analisa & Insight");
-      doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(13,19,40);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(C.txt1[0],C.txt1[1],C.txt1[2]);
       r.insights.forEach(ins => {
         needY(7);
-        doc.setFillColor(0,184,224); doc.circle(ML+1.5, pdf.Y-1.5, 0.7, 'F');
+        pdf.sf(C.blue); doc.circle(ML+1.5, pdf.Y-1.5, 0.7, 'F');
         const lines = doc.splitTextToSize(ins, CW-10);
         doc.text(lines, ML+6, pdf.Y);
         pdf.Y += lines.length*4.2 + 2;
@@ -1190,9 +1213,9 @@ function Reports({ claims, kantong, showToast }) {
         startY: pdf.Y,
         margin: {left:ML, right:MR},
         theme: "grid",
-        styles: { fontSize:8, cellPadding:3, textColor:[13,19,40], lineColor:[224,228,236], lineWidth:0.2 },
-        headStyles: { fillColor:[8,12,22], textColor:255, fontStyle:"bold", fontSize:7.5, halign:"center" },
-        alternateRowStyles: { fillColor:[247,249,252] },
+        styles: { fontSize:8, cellPadding:3, textColor:C.txt1, lineColor:C.border, lineWidth:0.2 },
+        headStyles: { fillColor:C.navy, textColor:255, fontStyle:"bold", fontSize:7.5, halign:"center" },
+        alternateRowStyles: { fillColor:[248,249,253] },
         columnStyles: { 0:{halign:"left",fontStyle:"bold"}, 1:{halign:"left"}, 2:{halign:"center"}, 3:{halign:"center"}, 4:{halign:"left"}, 5:{halign:"right",fontStyle:"bold"}, 6:{halign:"right"} },
         head: [["Minggu","Periode","Transaksi","Driver","Jenis Terbanyak","Total","% Bulan"]],
         body: r.weeks.map(w => [
@@ -1202,7 +1225,7 @@ function Reports({ claims, kantong, showToast }) {
           "Rp "+fmt(w.total), `${r.grand>0?(w.total/r.grand*100).toFixed(1):0}%`
         ]),
         foot: [[ "TOTAL", "", `${r.monthClaims.length}x`, String([...new Set(r.monthClaims.map(c=>getClaimDriver(c)))].length), "", "Rp "+fmt(r.grand), "100%" ]],
-        footStyles: { fillColor:[224,247,252], textColor:[8,12,22], fontStyle:"bold", fontSize:8 },
+        footStyles: { fillColor:C.periodBg, textColor:C.navy, fontStyle:"bold", fontSize:8 },
         willDrawPage: drawPageFooter,
       });
       pdf.Y = doc.lastAutoTable.finalY + 8;
@@ -1214,9 +1237,9 @@ function Reports({ claims, kantong, showToast }) {
         startY: pdf.Y,
         margin: {left:ML, right:MR},
         theme: "grid",
-        styles: { fontSize:8, cellPadding:3, textColor:[13,19,40], lineColor:[224,228,236], lineWidth:0.2 },
-        headStyles: { fillColor:[8,12,22], textColor:255, fontStyle:"bold", fontSize:7.5, halign:"center" },
-        alternateRowStyles: { fillColor:[247,249,252] },
+        styles: { fontSize:8, cellPadding:3, textColor:C.txt1, lineColor:C.border, lineWidth:0.2 },
+        headStyles: { fillColor:C.navy, textColor:255, fontStyle:"bold", fontSize:7.5, halign:"center" },
+        alternateRowStyles: { fillColor:[248,249,253] },
         columnStyles: { 0:{halign:"left",fontStyle:"bold"}, 1:{halign:"center"}, 2:{halign:"center"}, 3:{halign:"left"}, 4:{halign:"right",fontStyle:"bold"}, 5:{halign:"right"} },
         head: [["Driver","Claim","Minggu Aktif","Jenis Utama","Total","%"]],
         body: r.byDriver.map(d => [d.driver, `${d.count}x`, `${d.weeks}`, d.topType, "Rp "+fmt(d.total), `${r.grand>0?(d.total/r.grand*100).toFixed(1):0}%`]),
@@ -1231,9 +1254,9 @@ function Reports({ claims, kantong, showToast }) {
         startY: pdf.Y,
         margin: {left:ML, right:MR},
         theme: "grid",
-        styles: { fontSize:8, cellPadding:3, textColor:[13,19,40], lineColor:[224,228,236], lineWidth:0.2 },
-        headStyles: { fillColor:[8,12,22], textColor:255, fontStyle:"bold", fontSize:7.5, halign:"center" },
-        alternateRowStyles: { fillColor:[247,249,252] },
+        styles: { fontSize:8, cellPadding:3, textColor:C.txt1, lineColor:C.border, lineWidth:0.2 },
+        headStyles: { fillColor:C.navy, textColor:255, fontStyle:"bold", fontSize:7.5, halign:"center" },
+        alternateRowStyles: { fillColor:[248,249,253] },
         columnStyles: { 0:{halign:"left",fontStyle:"bold"}, 1:{halign:"center"}, 2:{halign:"right",fontStyle:"bold"}, 3:{halign:"right"} },
         head: [["Jenis","Frekuensi","Total","%"]],
         body: r.byType.map(t => [t.type, `${t.count}x`, "Rp "+fmt(t.total), `${r.grand>0?(t.total/r.grand*100).toFixed(1):0}%`]),
@@ -1257,14 +1280,14 @@ function Reports({ claims, kantong, showToast }) {
         startY: pdf.Y,
         margin: {left:ML, right:MR},
         theme: "grid",
-        styles: { fontSize:7.8, cellPadding:2.6, textColor:[13,19,40], lineColor:[224,228,236], lineWidth:0.2 },
-        headStyles: { fillColor:[8,12,22], textColor:255, fontStyle:"bold", fontSize:7.5, halign:"center" },
-        alternateRowStyles: { fillColor:[247,249,252] },
+        styles: { fontSize:7.8, cellPadding:2.6, textColor:C.txt1, lineColor:C.border, lineWidth:0.2 },
+        headStyles: { fillColor:C.navy, textColor:255, fontStyle:"bold", fontSize:7.5, halign:"center" },
+        alternateRowStyles: { fillColor:[248,249,253] },
         columnStyles: { 0:{halign:"left",cellWidth:26}, 1:{halign:"left",cellWidth:40}, 2:{halign:"left",cellWidth:30}, 3:{halign:"left"}, 4:{halign:"right",fontStyle:"bold",cellWidth:32} },
         head: [["Tanggal","Driver","Jenis","Rincian","Nominal"]],
         body: detailRows,
         foot: [[ "", "", "", "GRAND TOTAL", "Rp "+fmt(r.grand) ]],
-        footStyles: { fillColor:[224,247,252], textColor:[8,12,22], fontStyle:"bold", fontSize:8.5 },
+        footStyles: { fillColor:C.periodBg, textColor:C.navy, fontStyle:"bold", fontSize:8.5 },
         willDrawPage: drawPageFooter,
       });
       pdf.Y = doc.lastAutoTable.finalY + 8;
@@ -1279,8 +1302,8 @@ function Reports({ claims, kantong, showToast }) {
           startY: pdf.Y,
           margin: {left:ML, right:MR},
           theme: "grid",
-          styles: { fontSize:8.5, cellPadding:3.2, textColor:[13,19,40], lineColor:[224,228,236], lineWidth:0.2 },
-          headStyles: { fillColor:[8,12,22], textColor:255, fontStyle:"bold", fontSize:8, halign:"left" },
+          styles: { fontSize:8.5, cellPadding:3.2, textColor:C.txt1, lineColor:C.border, lineWidth:0.2 },
+          headStyles: { fillColor:C.navy, textColor:255, fontStyle:"bold", fontSize:8, halign:"left" },
           columnStyles: { 0:{halign:"left",fontStyle:"bold",cellWidth:70}, 1:{halign:"right",fontStyle:"bold",cellWidth:50}, 2:{halign:"left"} },
           head: [["Pos","Nilai","Keterangan"]],
           body: [
@@ -1293,7 +1316,7 @@ function Reports({ claims, kantong, showToast }) {
             ["Claim Dibayar (A6)", "Rp "+fmt(cf.claimPaid), "Sudah dibayar Finance"],
           ],
           foot: [[ "Outstanding (B) = A3+A4+A5+A6", "Rp "+fmt(cf.outstanding), `GAP (B-A): ${cf.gap>=0?"+":""}Rp ${fmt(cf.gap)}` ]],
-          footStyles: { fillColor:[8,12,22], textColor:255, fontStyle:"bold", fontSize:9 },
+          footStyles: { fillColor:C.navy, textColor:255, fontStyle:"bold", fontSize:9 },
           willDrawPage: drawPageFooter,
         });
         pdf.Y = doc.lastAutoTable.finalY + 8;
@@ -1308,6 +1331,7 @@ function Reports({ claims, kantong, showToast }) {
       setDownloading(false);
     }
   };
+
 
   const r = report;
 
