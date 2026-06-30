@@ -1233,20 +1233,114 @@ function drawStationSketch(stations, opts) {
     return [x, y];
   }
 
-  // Frame
-  ctx.strokeStyle = '#CED3E3';
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(pad, pad, plotW, plotH);
-
-  // Reference grid (5x5) with faint lines
-  ctx.strokeStyle = '#E8EBF2';
-  ctx.lineWidth = 1;
-  for (let i=1; i<5; i++) {
-    const gx = pad + (plotW/5)*i;
-    ctx.beginPath(); ctx.moveTo(gx, pad); ctx.lineTo(gx, pad+plotH); ctx.stroke();
-    const gy = pad + (plotH/5)*i;
-    ctx.beginPath(); ctx.moveTo(pad, gy); ctx.lineTo(pad+plotW, gy); ctx.stroke();
+  // ── Seeded PRNG (mulberry32) — deterministic from the bounding box, so
+  // re-generating the same report twice produces an identical sketch
+  // rather than a different random road layout each time. ──
+  function mulberry32(seed) {
+    let state = seed >>> 0;
+    return function() {
+      state = (state + 0x6D2B79F5) >>> 0;
+      let t = state;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t = (t + Math.imul(t ^ (t >>> 7), t | 61)) >>> 0;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
   }
+  const seedInput = Math.abs(Math.round((minLat+maxLat)*1000) + Math.round((minLng+maxLng)*1000)) || 1;
+  const rand = mulberry32(seedInput);
+
+  // ── Abstract road network — NOT a real street map (deliberately avoided
+  // fetching real tiles here; see drawStationSketch's call site comment
+  // for why). This renders an organic-looking grid of "streets" with
+  // slight jitter so it reads as a city sketch rather than a spreadsheet
+  // grid, purely as visual context for where the plotted points sit. ──
+  const roadColor = '#475569';
+  const nH = 5, nV = 5;
+
+  function jitteredLine(x1, y1, x2, y2, segments, jitterAmt) {
+    const dx = x2-x1, dy = y2-y1;
+    const length = Math.hypot(dx,dy) || 1;
+    const nx = -dy/length, ny = dx/length;
+    const pts = [[x1,y1]];
+    for (let i=1; i<segments; i++) {
+      const t = i/segments;
+      const bx = x1+dx*t, by = y1+dy*t;
+      const off = (rand()-0.5) * jitterAmt;
+      pts.push([bx+nx*off, by+ny*off]);
+    }
+    pts.push([x2,y2]);
+    return pts;
+  }
+  function strokePolyline(pts, width) {
+    ctx.lineWidth = width;
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = roadColor;
+  const hLinesY = [];
+  for (let i=1; i<nH; i++) {
+    const baseY = pad + (plotH/nH)*i;
+    const y = baseY + (rand()-0.5) * (plotH/nH) * 0.25;
+    hLinesY.push(y);
+    strokePolyline(jitteredLine(pad, y, pad+plotW, y, 4, 6), i%2===1 ? 3 : 1.5);
+  }
+  const vLinesX = [];
+  for (let i=1; i<nV; i++) {
+    const baseX = pad + (plotW/nV)*i;
+    const x = baseX + (rand()-0.5) * (plotW/nV) * 0.25;
+    vLinesX.push(x);
+    strokePolyline(jitteredLine(x, pad, x, pad+plotH, 4, 6), i%2===1 ? 3 : 1.5);
+  }
+
+  // Short connector roads linking two nearby grid intersections, so they
+  // read as small side streets rather than disconnected diagonal marks.
+  const allX = [pad, ...vLinesX, pad+plotW];
+  const allY = [pad, ...hLinesY, pad+plotH];
+  for (let k=0; k<5; k++) {
+    const ix = Math.floor(rand()*(allX.length-2));
+    const iy = Math.floor(rand()*(allY.length-2));
+    const x1=allX[ix], y1=allY[iy], x2=allX[ix+1], y2=allY[iy+1];
+    const mx = (x1+x2)/2 + (rand()-0.5)*16, my = (y1+y2)/2 + (rand()-0.5)*16;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.quadraticCurveTo(mx,my,x2,y2); ctx.stroke();
+  }
+
+  // ── Building block outlines between road cells — light sketch rectangles
+  // suggesting urban footprint, outline only (no fill) so they stay
+  // unobtrusive relative to the station pins. ──
+  const buildingColor = '#CBD5E1';
+  ctx.strokeStyle = buildingColor;
+  ctx.lineWidth = 1;
+  const cellsX = [pad, ...vLinesX, pad+plotW].sort((a,b)=>a-b);
+  const cellsY = [pad, ...hLinesY, pad+plotH].sort((a,b)=>a-b);
+  for (let ix=0; ix<cellsX.length-1; ix++) {
+    for (let iy=0; iy<cellsY.length-1; iy++) {
+      const cx0=cellsX[ix], cx1=cellsX[ix+1], cy0=cellsY[iy], cy1=cellsY[iy+1];
+      const cw=cx1-cx0, ch=cy1-cy0;
+      if (cw < 18 || ch < 18) continue;
+      const nBuildings = rand() < 0.5 ? 1 : 2;
+      for (let b=0; b<nBuildings; b++) {
+        const bw = cw*(0.25+rand()*0.25), bh = ch*(0.25+rand()*0.25);
+        const bx = cx0 + rand()*(cw-bw), by = cy0 + rand()*(ch-bh);
+        ctx.strokeRect(bx, by, bw, bh);
+      }
+    }
+  }
+
+  // Frame drawn AFTER roads/buildings, then re-mask the outer margin back
+  // to white so anything that drew slightly past the plot bounds (jitter,
+  // connector curves) gets cleanly clipped without per-pixel masking.
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, W, pad);
+  ctx.fillRect(0, pad+plotH, W, H-(pad+plotH));
+  ctx.fillRect(0, 0, pad, H);
+  ctx.fillRect(pad+plotW, 0, W-(pad+plotW), H);
+  ctx.strokeStyle = '#94A3B8'; ctx.lineWidth = 2;
+  ctx.strokeRect(pad, pad, plotW, plotH);
 
   // North arrow (top-right of frame)
   const naX = pad + plotW - 24, naY = pad + 28;
@@ -1256,15 +1350,31 @@ function drawStationSketch(stations, opts) {
   ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center';
   ctx.fillText('U', naX, naY+32);
 
-  // Plot points, numbered
+  // Plot points, numbered, with a name label beneath each (haloed so it
+  // stays legible over the road/building sketch lines).
   valid.forEach((s, i) => {
     const [x, y] = project(s.lat, s.lng);
     const hasFuel = (s.fuels||[]).some(f=>f.available);
     ctx.fillStyle = hasFuel ? '#00748F' : '#C28A1A';
-    ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI*2); ctx.fill();
     ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(String(i+1), x, y+0.5);
+
+    const label = String(s.name || '').slice(0, 22);
+    if (label) {
+      ctx.font = '10px Arial';
+      const lw = ctx.measureText(label).width;
+      // Flip the label above the pin instead of below when the point sits
+      // near the compass (top-right corner), so the two never overlap.
+      const nearCompass = (x > naX - 50) && (y < naY + 50);
+      const lx = x;
+      const ly = nearCompass ? (y - 11 - 16) : (y + 11 + 5);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(lx-lw/2-3, ly-2, lw+6, 14);
+      ctx.fillStyle = '#334155'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText(label, lx, ly);
+    }
   });
   ctx.textBaseline = 'alphabetic';
 
