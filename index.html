@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>FleetOS — Vehicle Management System</title>
+<title>CIKOPS - VEHICLE MANAGEMENT SYSTEM</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -969,7 +969,7 @@ function App() {
           React.createElement("div",{style:{width:28,height:28,borderRadius:7,background:"var(--surface-2)",border:"1px solid var(--border-08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--accent)"}},"A"),
           React.createElement("div",null,
             React.createElement("div",{style:{fontSize:12,fontWeight:600,color:"var(--t1)"}},T.admin),
-            React.createElement("div",{style:{fontSize:10,color:"var(--t5)"}},"admin@fleet.id")
+            React.createElement("div",{style:{fontSize:10,color:"var(--t5)"}},"GA Administrator")
           )
         )
       )
@@ -2473,8 +2473,8 @@ function Reports({ claims, kantong, showToast }) {
       const dateStr = now.toLocaleDateString(lang==="en"?"en-GB":"id-ID",{day:"2-digit",month:"2-digit",year:"numeric"});
       const timeStr = now.toLocaleTimeString(lang==="en"?"en-GB":"id-ID",{hour:"2-digit",minute:"2-digit"}).replace(":",".");
       const pdf = makeFleetPDF({
-        title: lang==="en" ? "FLEET OPERATIONS — FleetOS" : "FLEET OPERATIONS — FleetOS",
-        subtitle: lang==="en" ? "Comprehensive Vehicle Claim Report" : "Laporan Komprehensif Claim Kendaraan",
+        title: lang==="en" ? "VEHICLE OPERATIONS — FACILITY MANAGEMENT" : "VEHICLE OPERATIONS — FACILITY MANAGEMENT",
+        subtitle: lang==="en" ? "Comprehensive Vehicle Claim Report" : "LAPORAN KLAIM OPERATIONAL DRIVER",
         metaRight1: (lang==="en"?"Period ":"Periode ") + periodLabel,
         metaRight2: (lang==="en"?"Generated ":"Dibuat ") + dateStr + ", " + timeStr,
         footerLeft: "FleetOS  ·  " + (lang==="en"?"Vehicle Claim Report":"Vehicle Claim Report") + "  ·  Confidential",
